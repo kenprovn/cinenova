@@ -1,14 +1,14 @@
-﻿import React from 'react';
+import React from 'react';
 import { AgeRating } from '../../types';
 import { cn } from '../../lib/utils';
 
 interface AgeBadgeProps {
-  rating: AgeRating;
+  rating?: AgeRating | string | null;
   className?: string;
 }
 
 export const AgeBadge: React.FC<AgeBadgeProps> = ({ rating, className }) => {
-  const getBadgeStyle = (r: AgeRating) => {
+  const getBadgeStyle = (r?: string | null) => {
     switch (r) {
       case 'P':
         return 'bg-emerald-600/90 text-white border-emerald-500/40';
@@ -22,29 +22,33 @@ export const AgeBadge: React.FC<AgeBadgeProps> = ({ rating, className }) => {
         return 'bg-rose-700/90 text-white border-rose-600/40';
       case 'C':
         return 'bg-red-800/90 text-white border-red-700/40';
+      case 'UNRATED':
       default:
-        return 'bg-zinc-700 text-zinc-200 border-zinc-600';
+        return 'bg-zinc-800 text-zinc-300 border-zinc-700';
     }
   };
 
-  const getLabel = (r: AgeRating) => {
+  const getLabel = (r?: string | null) => {
     switch (r) {
       case 'P':
         return 'P - Mọi độ tuổi';
       case 'K':
         return 'K - Dưới 13 tuổi có kèm PH';
       case 'T13':
-        return '13+';
+        return '13+ (Khán giả từ đủ 13 tuổi)';
       case 'T16':
-        return '16+';
+        return '16+ (Khán giả từ đủ 16 tuổi)';
       case 'T18':
-        return '18+';
+        return '18+ (Khán giả từ đủ 18 tuổi)';
       case 'C':
         return 'C - Cấm chiếu';
+      case 'UNRATED':
       default:
-        return r;
+        return 'Chưa phân loại (TBC)';
     }
   };
+
+  const displayText = !rating || rating === 'UNRATED' ? 'TBC' : rating;
 
   return (
     <span
@@ -55,8 +59,7 @@ export const AgeBadge: React.FC<AgeBadgeProps> = ({ rating, className }) => {
       )}
       title={getLabel(rating)}
     >
-      {rating}
+      {displayText}
     </span>
   );
 };
-

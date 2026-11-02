@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Clapperboard, Shield, User, Menu, X, Ticket } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -25,8 +25,8 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: 'Trang chủ', path: '/' },
-    { label: 'Phim đang chiếu', path: '/movies' },
-    { label: 'Đặt vé', path: '/movies?tab=now' },
+    { label: 'Phim đang chiếu', path: '/movies?tab=now' },
+    { label: 'Kho phim', path: '/movies?tab=library' },
   ];
 
   const isActive = (path: string) => {
@@ -47,17 +47,17 @@ export const Navbar: React.FC = () => {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary-dark to-surface flex items-center justify-center border border-primary/40 shadow-glow-primary/40 group-hover:scale-105 transition-transform duration-200">
-              <Clapperboard className="w-5 h-5 text-white" />
+          <Link to="/" className="flex items-center gap-2 sm:gap-2.5 group">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary via-primary-dark to-surface flex items-center justify-center border border-primary/40 shadow-glow-primary/40 group-hover:scale-105 transition-transform duration-200">
+              <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="heading-font text-2xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-100 to-gold bg-clip-text text-transparent">
+              <span className="heading-font text-lg sm:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-100 to-gold bg-clip-text text-transparent leading-none">
                 CINENOVA
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-gold/80 font-semibold -mt-1">
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-gold/80 font-semibold mt-0.5">
                 Cinema Booking
               </span>
             </div>
@@ -128,13 +128,14 @@ export const Navbar: React.FC = () => {
           <div className="flex md:hidden items-center gap-2">
             <Link
               to="/movies"
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white"
+              className="inline-flex items-center gap-1 px-3 py-2 min-h-[38px] rounded-lg text-xs font-semibold bg-primary hover:bg-primary-hover text-white shadow-glow-primary transition-all active:scale-95 touch-manipulation"
             >
-              Đặt vé
+              <Ticket className="w-3.5 h-3.5" />
+              <span>Đặt vé</span>
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-cinetext-secondary hover:text-white hover:bg-surface border border-surface-border transition-colors"
+              className="p-2 min-w-[38px] min-h-[38px] flex items-center justify-center rounded-lg text-cinetext-secondary hover:text-white hover:bg-surface border border-surface-border transition-colors touch-manipulation"
               aria-label="Toggle Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -145,16 +146,16 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-surface border-b border-surface-border px-4 pt-3 pb-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden bg-surface/98 backdrop-blur-xl border-b border-surface-border px-4 pt-3 pb-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  'block px-3 py-2.5 rounded-lg text-base font-medium',
+                  'flex items-center px-3.5 py-3 rounded-lg text-sm font-medium min-h-[44px]',
                   isActive(link.path)
-                    ? 'text-white bg-surface-light border border-surface-border'
+                    ? 'text-white bg-surface-light border border-surface-border shadow-sm'
                     : 'text-cinetext-secondary hover:text-white hover:bg-surface-light/40'
                 )}
               >
@@ -167,28 +168,30 @@ export const Navbar: React.FC = () => {
             {isAdmin && (
               <Link
                 to="/admin"
-                className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold bg-surface-light border border-gold/30"
+                className="flex items-center justify-between w-full px-3.5 py-3 rounded-lg text-sm font-medium text-gold bg-surface-light border border-gold/30 min-h-[44px]"
               >
                 <span className="flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   <span>Khu vực Quản trị (Admin)</span>
                 </span>
-                <span className="text-xs bg-gold/20 px-2 py-0.5 rounded text-gold">ADMIN</span>
+                <span className="text-xs bg-gold/20 px-2 py-0.5 rounded text-gold font-semibold">ADMIN</span>
               </Link>
             )}
 
             {user ? (
               <Link
                 to="/profile"
-                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white hover:bg-surface-light"
+                className="flex items-center gap-2.5 w-full px-3.5 py-3 rounded-lg text-sm font-medium text-white hover:bg-surface-light min-h-[44px]"
               >
-                <User className="w-4 h-4 text-gold" />
-                <span>Tài khoản: {displayName}</span>
+                <div className="w-6 h-6 rounded-full bg-gold/20 text-gold border border-gold/40 flex items-center justify-center text-xs font-bold shrink-0">
+                  {displayName[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="truncate">Tài khoản: {displayName}</span>
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-cinetext-primary hover:bg-surface-light"
+                className="flex items-center gap-2 w-full px-3.5 py-3 rounded-lg text-sm font-medium text-cinetext-primary hover:bg-surface-light min-h-[44px]"
               >
                 <User className="w-4 h-4" />
                 <span>Đăng nhập / Đăng ký</span>

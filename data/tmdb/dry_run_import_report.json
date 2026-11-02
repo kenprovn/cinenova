@@ -1,0 +1,205 @@
+{
+  "simulation_time": "2026-11-02T13:33:37.949Z",
+  "total_tmdb_movies_input": 500,
+  "existing_db_movies_count": 10,
+  "matched_existing_updates": [
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000003",
+      "tmdb_id": 1209217,
+      "db_title": "Thám Tử Lừng Danh Conan: Ngôi Sao 5 Cánh 1 Triệu Đô",
+      "tmdb_title": "Thám Tử Lừng Danh Conan: Ngôi Sao 5 Cánh 1 Triệu Đô",
+      "status": "now_showing",
+      "age_rating": "T13",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: JP: G)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000010",
+      "tmdb_id": 157336,
+      "db_title": "Interstellar – Hố Đen Tử Thần (IMAX)",
+      "tmdb_title": "Hố Đen Tử Thần",
+      "status": "now_showing",
+      "age_rating": "T13",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG-13)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000001",
+      "tmdb_id": 693134,
+      "db_title": "Hành Tinh Cát: Phần Hai",
+      "tmdb_title": "Hành Tinh Cát: Phần Hai",
+      "status": "now_showing",
+      "age_rating": "T16",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG-13)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000002",
+      "tmdb_id": 872585,
+      "db_title": "Oppenheimer – Kẻ Huỷ Diệt Thế Giới",
+      "tmdb_title": "Oppenheimer",
+      "status": "now_showing",
+      "age_rating": "T18",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: R)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000004",
+      "tmdb_id": 519182,
+      "db_title": "Kẻ Trộm Mặt Trăng 4",
+      "tmdb_title": "Kẻ Trộm Mặt Trăng 4",
+      "status": "now_showing",
+      "age_rating": "P",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000005",
+      "tmdb_id": 762441,
+      "db_title": "Vùng Đất Câm Lặng: Ngày Một",
+      "tmdb_title": "Vùng Đất Câm Lặng: Ngày Một",
+      "status": "now_showing",
+      "age_rating": "T16",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG-13)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000006",
+      "tmdb_id": 533535,
+      "db_title": "Deadpool & Wolverine",
+      "tmdb_title": "Deadpool và Wolverine",
+      "status": "now_showing",
+      "age_rating": "T18",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: R)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000007",
+      "tmdb_id": 558449,
+      "db_title": "Gladiator II – Võ Sĩ Giác Đấu 2",
+      "tmdb_title": "Võ Sĩ Giác Đấu II",
+      "status": "coming_soon",
+      "age_rating": "T18",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: R)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000008",
+      "tmdb_id": 1241982,
+      "db_title": "Moana 2 – Hành Trình Của Moana 2",
+      "tmdb_title": "Hành Trình Của Moana 2",
+      "status": "coming_soon",
+      "age_rating": "P",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG)"
+      ]
+    },
+    {
+      "uuid": "a1000000-0000-0000-0000-000000000009",
+      "tmdb_id": 83533,
+      "db_title": "Avatar 3: Tro Tàn & Lửa",
+      "tmdb_title": "Avatar: Lửa và Tro Tàn",
+      "status": "coming_soon",
+      "age_rating": "T13",
+      "updated_fields": [
+        "tmdb_id (Link official TMDB ID)",
+        "poster_url (Upgrade from placeholder to official TMDB w780)",
+        "backdrop_url (Upgrade from placeholder to official TMDB w1280)",
+        "trailer_url (Official YouTube trailer)",
+        "director",
+        "cast_members",
+        "certification_origin (Origin rating: US: PG-13)"
+      ]
+    }
+  ],
+  "new_movies_to_insert_count": 490,
+  "new_movies_breakdown": {
+    "coming_soon": 2,
+    "ended": 488,
+    "now_showing": 0
+  },
+  "certification_safety": {
+    "verified_vn_count": 10,
+    "unverified_vn_count": 480,
+    "fallback_p_assigned": 0,
+    "origin_certifications_captured": 454,
+    "vn_distribution": {
+      "T18": 6,
+      "T13": 2,
+      "T16": 2
+    }
+  },
+  "collision_protection": {
+    "uuid_conflict_check": "WHERE NOT EXISTS (m.id = v.id) + ON CONFLICT (id) DO NOTHING",
+    "tmdb_id_conflict_check": "WHERE NOT EXISTS (m.tmdb_id = v.tmdb_id) + Partial UNIQUE INDEX idx_movies_tmdb_id",
+    "method": "Double Anti-Collision Protection: Guarantees zero duplicate movies even if hidden/test records exist"
+  },
+  "output_files": {
+    "schema_ddl_file": "D:\\CINENOVA\\data\\tmdb\\01_schema_migration_phase4.sql",
+    "data_import_file": "D:\\CINENOVA\\data\\tmdb\\02_import_movies_data.sql",
+    "combined_preview_file": "D:\\CINENOVA\\data\\tmdb\\preview_import_500.sql",
+    "report_json_file": "D:\\CINENOVA\\data\\tmdb\\dry_run_import_report.json"
+  }
+}

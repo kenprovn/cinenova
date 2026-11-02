@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -364,21 +364,21 @@ export const CheckoutDemoPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <button
               onClick={handleFinish}
-              className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase rounded-xl tracking-wider transition-all flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 min-h-[44px] py-3 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase rounded-xl tracking-wider transition-all flex items-center justify-center gap-2 touch-manipulation active:scale-95 shadow-glow-primary"
             >
               <Home className="w-4 h-4" />
               <span>Quay về trang chủ</span>
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="w-full sm:w-auto px-5 py-3 bg-surface-light hover:bg-surface text-gold hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2"
+              className="w-full sm:w-auto min-h-[44px] px-5 py-3 bg-surface-light hover:bg-surface text-gold hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2 touch-manipulation active:scale-95"
             >
               <User className="w-4 h-4" />
               <span>Lịch sử vé của tôi</span>
             </button>
             <button
               onClick={() => window.print()}
-              className="w-full sm:w-auto px-5 py-3 bg-surface-light hover:bg-surface text-cinetext-secondary hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2"
+              className="w-full sm:w-auto min-h-[44px] px-5 py-3 bg-surface-light hover:bg-surface text-cinetext-secondary hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2 touch-manipulation active:scale-95"
             >
               <Printer className="w-4 h-4" />
               <span>In vé</span>
@@ -459,7 +459,7 @@ export const CheckoutDemoPage: React.FC = () => {
                   value={customer.fullName}
                   onChange={(e) => setCustomer({ fullName: e.target.value })}
                   placeholder="Ví dụ: Nguyễn Văn An"
-                  className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
+                  className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl px-3.5 py-2.5 min-h-[44px] focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
                 />
                 {formErrors.fullName && (
                   <p className="text-rose-400 text-xs mt-1">{formErrors.fullName}</p>
@@ -476,7 +476,7 @@ export const CheckoutDemoPage: React.FC = () => {
                     value={customer.email}
                     onChange={(e) => setCustomer({ email: e.target.value })}
                     placeholder="tenban@example.com"
-                    className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
+                    className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl px-3.5 py-2.5 min-h-[44px] focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
                   />
                   {formErrors.email && (
                     <p className="text-rose-400 text-xs mt-1">{formErrors.email}</p>
@@ -492,7 +492,7 @@ export const CheckoutDemoPage: React.FC = () => {
                     value={customer.phone}
                     onChange={(e) => setCustomer({ phone: e.target.value })}
                     placeholder="0912345678"
-                    className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
+                    className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl px-3.5 py-2.5 min-h-[44px] focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
                   />
                   {formErrors.phone && (
                     <p className="text-rose-400 text-xs mt-1">{formErrors.phone}</p>
@@ -521,7 +521,7 @@ export const CheckoutDemoPage: React.FC = () => {
                     key={m.id}
                     type="button"
                     onClick={() => setPaymentMethod(m.id)}
-                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between gap-3 ${
+                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between gap-3 min-h-[72px] touch-manipulation active:scale-[0.98] ${
                       isSelected
                         ? 'bg-primary/20 border-primary text-white shadow-glow-primary/40'
                         : 'bg-surface-light border-surface-border text-cinetext-secondary hover:text-white hover:border-zinc-500'
@@ -576,7 +576,7 @@ export const CheckoutDemoPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || remainingSeconds === 0}
-                className={`w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all ${
+                className={`w-full min-h-[48px] py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all touch-manipulation ${
                   isSubmitting || remainingSeconds === 0
                     ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
                     : 'bg-primary hover:bg-primary-hover text-white active:scale-95'

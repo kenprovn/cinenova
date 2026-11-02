@@ -11,6 +11,7 @@
     background-color: #0B0D14;
     color: #F8FAFC;
     font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Custom scrollbar */
@@ -53,5 +54,18 @@
 
 .glow-edge-gold {
   box-shadow: 0 0 20px -5px rgba(229, 185, 107, 0.4);
+}
+
+/* Hide scrollbar for mobile swipe carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.safe-area-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
 }
 

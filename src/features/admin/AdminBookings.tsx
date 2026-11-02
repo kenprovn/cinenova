@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   CheckCircle2,
@@ -130,7 +130,7 @@ export const AdminBookings: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo mã đơn, tên khách, số điện thoại, tên phim..."
-              className="w-full bg-surface-light border border-surface-border text-white text-xs rounded-lg pl-9 pr-3 py-2.5 focus:outline-none focus:border-primary"
+              className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-xs rounded-lg pl-9 pr-3 py-2.5 min-h-[44px] focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -140,7 +140,7 @@ export const AdminBookings: React.FC = () => {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value as any)}
-              className="bg-surface-light border border-surface-border text-white text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:border-primary"
+              className="w-full md:w-auto bg-surface-light border border-surface-border text-white text-base sm:text-xs rounded-lg px-2.5 py-2 min-h-[44px] focus:outline-none focus:border-primary"
             >
               <option value="all">Tất cả phương thức</option>
               <option value="momo">MoMo (Demo)</option>
@@ -154,7 +154,7 @@ export const AdminBookings: React.FC = () => {
           <span className="text-xs text-cinetext-muted mr-1">Trạng thái:</span>
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-all touch-manipulation ${
               statusFilter === 'all'
                 ? 'bg-primary text-white shadow-glow-primary'
                 : 'bg-surface-light text-cinetext-secondary hover:text-white'
@@ -164,7 +164,7 @@ export const AdminBookings: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('confirmed')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-all touch-manipulation ${
               statusFilter === 'confirmed'
                 ? 'bg-emerald-500 text-white shadow-glow-emerald'
                 : 'bg-surface-light text-cinetext-secondary hover:text-white'
@@ -174,7 +174,7 @@ export const AdminBookings: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-all touch-manipulation ${
               statusFilter === 'pending'
                 ? 'bg-amber-500 text-white'
                 : 'bg-surface-light text-cinetext-secondary hover:text-white'
@@ -184,7 +184,7 @@ export const AdminBookings: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('expired')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-all touch-manipulation ${
               statusFilter === 'expired'
                 ? 'bg-rose-500 text-white'
                 : 'bg-surface-light text-cinetext-secondary hover:text-white'
@@ -304,8 +304,8 @@ export const AdminBookings: React.FC = () => {
 
       {/* Booking Details Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl border border-surface-border w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface rounded-2xl border border-surface-border w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-surface-border pb-4">
               <div>
@@ -318,7 +318,8 @@ export const AdminBookings: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="p-1.5 rounded-lg bg-surface-light text-cinetext-muted hover:text-white transition-colors"
+                className="p-2 rounded-lg bg-surface-light text-cinetext-muted hover:text-white transition-colors touch-manipulation"
+                aria-label="Đóng cửa sổ"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "a1000000-0000-0000-0000-000000000001",
+    "title": "Hành Tinh Cát: Phần Hai",
+    "original_title": "Dune: Part Two",
+    "duration_minutes": 166,
+    "release_date": "2024-03-01",
+    "age_rating": "T16",
+    "rating": 8.9,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000002",
+    "title": "Oppenheimer – Kẻ Huỷ Diệt Thế Giới",
+    "original_title": "Oppenheimer",
+    "duration_minutes": 180,
+    "release_date": "2023-08-11",
+    "age_rating": "T18",
+    "rating": 9.1,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000003",
+    "title": "Thám Tử Lừng Danh Conan: Ngôi Sao 5 Cánh 1 Triệu Đô",
+    "original_title": "Detective Conan: The Million-dollar Pentagram",
+    "duration_minutes": 110,
+    "release_date": "2024-08-02",
+    "age_rating": "P",
+    "rating": 8.4,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000004",
+    "title": "Kẻ Trộm Mặt Trăng 4",
+    "original_title": "Despicable Me 4",
+    "duration_minutes": 95,
+    "release_date": "2024-07-05",
+    "age_rating": "P",
+    "rating": 7.9,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000005",
+    "title": "Vùng Đất Câm Lặng: Ngày Một",
+    "original_title": "A Quiet Place: Day One",
+    "duration_minutes": 100,
+    "release_date": "2024-06-28",
+    "age_rating": "T16",
+    "rating": 8,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000006",
+    "title": "Deadpool & Wolverine",
+    "original_title": "Deadpool & Wolverine",
+    "duration_minutes": 128,
+    "release_date": "2024-07-26",
+    "age_rating": "T18",
+    "rating": 8.7,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000007",
+    "title": "Gladiator II – Võ Sĩ Giác Đấu 2",
+    "original_title": "Gladiator II",
+    "duration_minutes": 148,
+    "release_date": "2026-11-15",
+    "age_rating": "T18",
+    "rating": 8.5,
+    "status": "coming_soon",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000008",
+    "title": "Moana 2 – Hành Trình Của Moana 2",
+    "original_title": "Moana 2",
+    "duration_minutes": 100,
+    "release_date": "2026-11-29",
+    "age_rating": "P",
+    "rating": 8.3,
+    "status": "coming_soon",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000009",
+    "title": "Avatar 3: Tro Tàn & Lửa",
+    "original_title": "Avatar: Fire and Ash",
+    "duration_minutes": 190,
+    "release_date": "2026-12-19",
+    "age_rating": "T13",
+    "rating": 9.3,
+    "status": "coming_soon",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  },
+  {
+    "id": "a1000000-0000-0000-0000-000000000010",
+    "title": "Interstellar – Hố Đen Tử Thần (IMAX)",
+    "original_title": "Interstellar (10th Anniversary IMAX Re-Release)",
+    "duration_minutes": 169,
+    "release_date": "2024-09-27",
+    "age_rating": "T13",
+    "rating": 9.2,
+    "status": "now_showing",
+    "created_at": "2026-11-02T05:20:46.365249+00:00",
+    "updated_at": "2026-11-02T05:20:46.365249+00:00"
+  }
+]

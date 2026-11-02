@@ -1,10 +1,11 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Star, Ticket, Play, MapPin, Film, Sparkles, AlertCircle } from 'lucide-react';
 import { MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';
 import { useBooking } from '../booking/BookingContext';
 import { formatCurrency } from '../../lib/utils';
+import { normalizeGenre } from '../../lib/genreUtils';
 import { movieService, resolveMovieId, UUID_REGEX } from '../../services/movieService';
 import { showtimeService } from '../../services/showtimeService';
 import { cinemaService, resolveCinemaId } from '../../services/cinemaService';
@@ -168,8 +169,14 @@ export const MovieDetailsPage: React.FC = () => {
             {/* Title & Metadata */}
             <div className="space-y-3.5 text-center md:text-left flex-1">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <span className="text-xs uppercase font-bold text-gold tracking-widest bg-gold/10 px-2.5 py-1 rounded border border-gold/30">
-                  {movie.isNowShowing ? 'Đang Chiếu' : 'Sắp Khởi Chiếu'}
+                <span className={`text-xs uppercase font-bold tracking-widest px-2.5 py-1 rounded border ${
+                  movie.isNowShowing
+                    ? 'text-gold bg-gold/10 border-gold/30'
+                    : movie.isComingSoon
+                    ? 'text-blue-400 bg-blue-500/10 border-blue-500/30'
+                    : 'text-zinc-300 bg-zinc-800/80 border-zinc-700'
+                }`}>
+                  {movie.isNowShowing ? 'Đang Chiếu' : movie.isComingSoon ? 'Sắp Khởi Chiếu' : 'Thư Viện Điện Ảnh'}
                 </span>
                 <span className="text-xs text-cinetext-secondary">
                   Khởi chiếu: {movie.releaseDate}
@@ -186,11 +193,17 @@ export const MovieDetailsPage: React.FC = () => {
 
               {/* Badges / Rating / Duration */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs sm:text-sm text-cinetext-secondary pt-1">
-                <div className="flex items-center gap-1.5 bg-surface-light px-3 py-1 rounded-lg border border-surface-border">
-                  <Star className="w-4 h-4 fill-gold text-gold" />
-                  <span className="font-bold text-white">{movie.rating}</span>
-                  <span className="text-cinetext-muted text-xs">({movie.reviewCount} đánh giá)</span>
-                </div>
+                {movie.rating && movie.rating > 0 ? (
+                  <div className="flex items-center gap-1.5 bg-surface-light px-3 py-1 rounded-lg border border-surface-border">
+                    <Star className="w-4 h-4 fill-gold text-gold" />
+                    <span className="font-bold text-white">{movie.rating.toFixed(1)}</span>
+                    <span className="text-cinetext-muted text-xs">({movie.reviewCount} đánh giá)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 bg-surface-light px-3 py-1 rounded-lg border border-surface-border">
+                    <span className="text-cinetext-muted text-xs font-medium">Chưa có đánh giá</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-1 bg-surface-light px-3 py-1 rounded-lg border border-surface-border">
                   <Clock className="w-4 h-4 text-gold" />
@@ -199,32 +212,44 @@ export const MovieDetailsPage: React.FC = () => {
 
                 <div className="flex items-center gap-1 bg-surface-light px-3 py-1 rounded-lg border border-surface-border">
                   <Film className="w-4 h-4 text-primary" />
-                  <span>{movie.genres.join(', ')}</span>
+                  <span>{movie.genres.map(normalizeGenre).join(', ')}</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-3">
-                <a
-                  href="#showtimes"
-                  className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-2 shadow-glow-primary transition-all active:scale-95"
-                >
-                  <Ticket className="w-4 h-4" />
-                  <span>Chọn suất chiếu & Mua vé</span>
-                </a>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-2.5 pt-3 w-full sm:w-auto">
+                {movie.isNowShowing ? (
+                  <>
+                    <a
+                      href="#showtimes"
+                      className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all active:scale-95 touch-manipulation"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      <span>Chọn suất chiếu & Mua vé</span>
+                    </a>
 
-                <button
-                  onClick={() => navigate(`/booking/${movie.id}`)}
-                  className="px-5 py-3 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs sm:text-sm font-semibold flex items-center gap-2 border border-surface-border transition-colors"
-                >
-                  <Ticket className="w-4 h-4 text-gold" />
-                  <span>Trang đặt vé</span>
-                </button>
+                    <button
+                      onClick={() => navigate(`/booking/${movie.id}`)}
+                      className="w-full sm:w-auto min-h-[44px] px-5 py-3 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border border-surface-border transition-colors touch-manipulation"
+                    >
+                      <Ticket className="w-4 h-4 text-gold" />
+                      <span>Trang đặt vé</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => navigate('/movies?tab=now')}
+                    className="w-full sm:w-auto min-h-[44px] px-5 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all active:scale-95 touch-manipulation"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span>Xem các phim đang chiếu</span>
+                  </button>
+                )}
 
                 {movie.trailerUrl && (
                   <button
                     onClick={() => setShowTrailerModal(true)}
-                    className="px-5 py-3 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs sm:text-sm font-semibold flex items-center gap-2 border border-surface-border transition-colors"
+                    className="w-full sm:w-auto min-h-[44px] px-5 py-3 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border border-surface-border transition-colors touch-manipulation"
                   >
                     <Play className="w-4 h-4 text-gold fill-gold" />
                     <span>Xem Trailer</span>
@@ -265,7 +290,7 @@ export const MovieDetailsPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-cinetext-muted block text-xs">Thể loại</span>
-                <span className="text-white font-medium">{movie.genres.join(', ')}</span>
+                <span className="text-white font-medium">{movie.genres.map(normalizeGenre).join(', ')}</span>
               </div>
               <div>
                 <span className="text-cinetext-muted block text-xs">Thời lượng</span>
@@ -281,121 +306,176 @@ export const MovieDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Showtime Schedule Picker */}
+        {/* Right Column: Showtime Schedule Picker or Library Info */}
         <div id="showtimes" className="lg:col-span-2 space-y-6">
-          <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-border pb-4">
-              <div>
-                <h2 className="heading-font text-xl font-bold text-white flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-primary" />
-                  Lịch Chiếu & Đặt Vé
-                </h2>
-                <p className="text-xs text-cinetext-secondary mt-0.5">
-                  Chọn rạp, ngày chiếu và khung giờ để đến bước chọn vị trí ghế
-                </p>
-              </div>
+          {movie.isNowShowing ? (
+            <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-border pb-4">
+                <div>
+                  <h2 className="heading-font text-xl font-bold text-white flex items-center gap-2">
+                    <Ticket className="w-5 h-5 text-primary" />
+                    Lịch Chiếu & Đặt Vé
+                  </h2>
+                  <p className="text-xs text-cinetext-secondary mt-0.5">
+                    Chọn rạp, ngày chiếu và khung giờ để đến bước chọn vị trí ghế
+                  </p>
+                </div>
 
-              {/* Cinema selector */}
-              <select
-                value={selectedCinemaId}
-                onChange={(e) => setSelectedCinemaId(e.target.value)}
-                className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-primary font-medium"
-              >
-                {cinemas.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Cinema Address Banner */}
-            <div className="flex items-start gap-2 bg-surface-light/60 p-3 rounded-xl border border-surface-border text-xs text-cinetext-secondary">
-              <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>{selectedCinema.address} • Hotline: {selectedCinema.phone}</span>
-            </div>
-
-            {/* Date Picker Bar */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-cinetext-muted uppercase tracking-wider">
-                Chọn ngày chiếu:
-              </span>
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-                {dates.map((d) => {
-                  const isSelected = selectedDate === d.dateStr;
-                  return (
-                    <button
-                      key={d.dateStr}
-                      onClick={() => setSelectedDate(d.dateStr)}
-                      className={`flex flex-col items-center justify-center min-w-[70px] px-3 py-2.5 rounded-xl border text-center transition-all shrink-0 ${
-                        isSelected
-                          ? 'bg-primary text-white border-primary shadow-glow-primary scale-105'
-                          : 'bg-surface-light text-cinetext-secondary border-surface-border hover:text-white hover:border-zinc-600'
-                      }`}
-                    >
-                      <span className="text-[11px] font-medium">{d.dayOfWeek}</span>
-                      <span className="text-sm font-bold mt-0.5">{d.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Showtimes List */}
-            <div className="space-y-4 pt-2">
-              <span className="text-xs font-semibold text-cinetext-muted uppercase tracking-wider block">
-                Suất chiếu có sẵn:
-              </span>
-
-              {movieShowtimes.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {movieShowtimes.map((st) => (
-                    <div
-                      key={st.id}
-                      className="group bg-surface-light hover:bg-surface-border/50 p-4 rounded-xl border border-surface-border hover:border-primary/60 transition-all flex flex-col justify-between gap-3"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-white group-hover:text-gold transition-colors">
-                              {st.startTime}
-                            </span>
-                            <span className="text-xs text-cinetext-muted">~ {st.endTime}</span>
-                          </div>
-                          <p className="text-xs text-cinetext-secondary mt-1">{st.hallName}</p>
-                        </div>
-                        <span className="text-[11px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/40">
-                          {st.format}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-surface-border/60">
-                        <span className="text-xs text-gold font-semibold">
-                          Từ {formatCurrency(st.priceRegular)}
-                        </span>
-                        <button
-                          onClick={() => handleSelectShowtime(st)}
-                          className="px-3 py-1.5 bg-primary group-hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 active:scale-95"
-                        >
-                          <Ticket className="w-3.5 h-3.5" />
-                          <span>Chọn ghế</span>
-                        </button>
-                      </div>
-                    </div>
+                {/* Cinema selector */}
+                <select
+                  value={selectedCinemaId}
+                  onChange={(e) => setSelectedCinemaId(e.target.value)}
+                  className="w-full sm:w-auto bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl px-3 py-2.5 min-h-[44px] focus:outline-none focus:border-primary font-medium"
+                >
+                  {cinemas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
+                </select>
+              </div>
+
+              {/* Cinema Address Banner */}
+              <div className="flex items-start gap-2 bg-surface-light/60 p-3 rounded-xl border border-surface-border text-xs text-cinetext-secondary">
+                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>{selectedCinema.address} • Hotline: {selectedCinema.phone}</span>
+              </div>
+
+              {/* Date Picker Bar */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-cinetext-muted uppercase tracking-wider">
+                  Chọn ngày chiếu:
+                </span>
+                <div className="flex items-center gap-2.5 overflow-x-auto pb-2 no-scrollbar">
+                  {dates.map((d) => {
+                    const isSelected = selectedDate === d.dateStr;
+                    return (
+                      <button
+                        key={d.dateStr}
+                        onClick={() => setSelectedDate(d.dateStr)}
+                        className={`flex flex-col items-center justify-center min-w-[70px] min-h-[58px] px-3 py-2.5 rounded-xl border text-center transition-all shrink-0 touch-manipulation ${
+                          isSelected
+                            ? 'bg-primary border-primary text-white shadow-glow-primary'
+                            : 'bg-surface-light border-surface-border text-cinetext-secondary hover:text-white hover:border-surface-border/80'
+                        }`}
+                      >
+                        <span className="text-[11px] font-medium uppercase tracking-wider">{d.dayOfWeek}</span>
+                        <span className="text-sm font-bold mt-0.5">{d.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="text-center py-10 bg-surface-light rounded-xl border border-surface-border space-y-2">
-                  <p className="text-sm text-cinetext-secondary">
-                    Hiện chưa có lịch chiếu cho rạp này vào ngày đã chọn ({selectedDate}).
-                  </p>
-                  <p className="text-xs text-cinetext-muted">
-                    Vui lòng chọn rạp khác hoặc ngày chiếu khác.
-                  </p>
+              </div>
+
+              {/* Showtime Grid */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-cinetext-muted uppercase tracking-wider">
+                    Suất chiếu ({movieShowtimes.length}):
+                  </span>
+                  <span className="text-xs text-cinetext-muted">
+                    Giá vé tiêu chuẩn đã bao gồm thuế & phí
+                  </span>
                 </div>
-              )}
+
+                {movieShowtimes.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {movieShowtimes.map((st) => (
+                      <div
+                        key={st.id}
+                        className="group bg-surface-light hover:bg-surface-border/50 p-4 rounded-xl border border-surface-border hover:border-primary/60 transition-all flex flex-col justify-between gap-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-white group-hover:text-gold transition-colors">
+                                {st.startTime}
+                              </span>
+                              <span className="text-xs text-cinetext-muted">~ {st.endTime}</span>
+                            </div>
+                            <p className="text-xs text-cinetext-secondary mt-1">{st.hallName}</p>
+                          </div>
+                          <span className="text-[11px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/40">
+                            {st.format}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-surface-border/60">
+                          <span className="text-xs text-gold font-semibold">
+                            Từ {formatCurrency(st.priceRegular)}
+                          </span>
+                          <button
+                            onClick={() => handleSelectShowtime(st)}
+                            className="min-h-[38px] px-3.5 py-2 bg-primary group-hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 active:scale-95 touch-manipulation shadow-glow-primary"
+                          >
+                            <Ticket className="w-3.5 h-3.5" />
+                            <span>Chọn ghế</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-surface-light rounded-xl border border-surface-border space-y-2">
+                    <p className="text-sm text-cinetext-secondary">
+                      Hiện chưa có lịch chiếu cho rạp này vào ngày đã chọn ({selectedDate}).
+                    </p>
+                    <p className="text-xs text-cinetext-muted">
+                      Vui lòng chọn rạp khác hoặc ngày chiếu khác.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-surface p-6 sm:p-8 rounded-2xl border border-surface-border space-y-6">
+              <div className="flex items-center gap-3 border-b border-surface-border pb-4">
+                <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold shrink-0">
+                  <Film className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="heading-font text-xl font-bold text-white">
+                    {movie.isComingSoon ? 'Phim Sắp Khởi Chiếu' : 'Thông Tin Thư Viện Điện Ảnh'}
+                  </h2>
+                  <p className="text-xs text-cinetext-secondary mt-0.5">
+                    {movie.isComingSoon
+                      ? 'Bộ phim đang được chuẩn bị lên lịch chiếu tại các cụm rạp CINENOVA.'
+                      : 'Tác phẩm hiện được lưu trữ trong Kho phim CINENOVA để tra cứu thông tin.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-surface-light/80 p-5 rounded-xl border border-surface-border space-y-3 text-xs sm:text-sm text-cinetext-secondary leading-relaxed">
+                <p>
+                  {movie.isComingSoon
+                    ? `Bộ phim "${movie.title}" dự kiến khởi chiếu vào ngày ${movie.releaseDate}. Suất chiếu và cổng bán vé sẽ được mở sớm nhất trước ngày công chiếu.`
+                    : `Bộ phim "${movie.title}" (${movie.originalTitle}) là tác phẩm điện ảnh thuộc Thư viện CINENOVA. Hiện tại phim không có suất chiếu bán vé thương mại tại các rạp.`}
+                </p>
+                {movie.trailerUrl && (
+                  <p className="text-zinc-300 font-medium">
+                    Quý khán giả có thể thưởng thức trailer chính thức, tóm tắt nội dung và danh sách diễn viên tại trang này.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <button
+                  onClick={() => navigate('/movies?tab=now')}
+                  className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-glow-primary transition-all active:scale-95 touch-manipulation"
+                >
+                  <Ticket className="w-4 h-4" />
+                  <span>Xem các phim đang chiếu</span>
+                </button>
+                <button
+                  onClick={() => navigate('/movies?tab=library')}
+                  className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 bg-surface-light hover:bg-surface text-cinetext-secondary hover:text-white rounded-xl text-xs font-medium border border-surface-border transition-colors flex items-center justify-center gap-2 touch-manipulation"
+                >
+                  <Film className="w-4 h-4 text-gold" />
+                  <span>Khám phá Kho phim</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

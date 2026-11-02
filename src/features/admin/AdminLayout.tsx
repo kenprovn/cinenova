@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -53,6 +53,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
         </Link>
       </div>
 
+      {/* Sidebar Overlay on mobile */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden transition-opacity"
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <aside
         className={cn(
@@ -78,7 +86,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 text-cinetext-muted hover:text-white"
+              className="lg:hidden p-2 text-cinetext-muted hover:text-white touch-manipulation"
+              aria-label="Đóng menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -97,7 +106,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
                     setSidebarOpen(false);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left',
+                    'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-left min-h-[44px] touch-manipulation',
                     isActive
                       ? 'bg-primary text-white shadow-glow-primary'
                       : 'text-cinetext-secondary hover:text-white hover:bg-surface-light'

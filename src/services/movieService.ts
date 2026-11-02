@@ -1,6 +1,7 @@
-﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Movie } from '../types';
 import { MOCK_MOVIES } from '../data/mockData';
+import { normalizeGenre } from '../lib/genreUtils';
 
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,16 +43,20 @@ export function mapDbMovieToMovie(row: any): Movie {
     trailerUrl: row.trailer_url || undefined,
     duration: row.duration_minutes,
     releaseDate: row.release_date,
-    ageRating: row.age_rating,
-    genres: row.genres || [],
+    ageRating: row.age_rating || 'UNRATED',
+    certificationOrigin: row.certification_origin || undefined,
+    tmdbId: row.tmdb_id || undefined,
+    genres: (row.genres || []).map(normalizeGenre),
     director: row.director || '',
     cast: row.cast_members || [],
     synopsis: row.description || '',
     rating: Number(row.rating) || 0,
     reviewCount: 120,
+    status: row.status,
     isNowShowing: row.status === 'now_showing',
     isComingSoon: row.status === 'coming_soon',
-    isFeatured: Number(row.rating) >= 8.5,
+    isEnded: row.status === 'ended',
+    isFeatured: Number(row.rating) >= 8.5 && row.status === 'now_showing',
   };
 }
 
@@ -81,6 +86,53 @@ export const movieService = {
     } catch (err: any) {
       console.error('[movieService] Unexpected error in getMovies:', err);
       return { data: [], isFromDb: true, error: err.message };
+    }
+  },
+
+  async getMoviesPaginated(params: {
+    page: number;
+    pageSize: number;
+    status?: 'all' | 'now_showing' | 'coming_soon' | 'ended';
+  }): Promise<{ data: Movie[]; totalCount: number; isFromDb: boolean; error?: string }> {
+    if (!isSupabaseConfigured) {
+      const start = (params.page - 1) * params.pageSize;
+      return {
+        data: MOCK_MOVIES.slice(start, start + params.pageSize),
+        totalCount: MOCK_MOVIES.length,
+        isFromDb: false,
+      };
+    }
+
+    try {
+      const from = (params.page - 1) * params.pageSize;
+      const to = from + params.pageSize - 1;
+
+      let query = supabase
+        .from('movies')
+        .select('*', { count: 'exact' })
+        .neq('status', 'hidden');
+
+      if (params.status && params.status !== 'all') {
+        query = query.eq('status', params.status);
+      }
+
+      const { data, count, error } = await query
+        .order('release_date', { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        console.error('[movieService] Error fetching paginated movies from Supabase:', error.message);
+        return { data: [], totalCount: 0, isFromDb: true, error: error.message };
+      }
+
+      return {
+        data: (data || []).map(mapDbMovieToMovie),
+        totalCount: count || 0,
+        isFromDb: true,
+      };
+    } catch (err: any) {
+      console.error('[movieService] Unexpected error in getMoviesPaginated:', err);
+      return { data: [], totalCount: 0, isFromDb: true, error: err.message };
     }
   },
 

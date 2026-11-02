@@ -1,4 +1,6 @@
-﻿export type AgeRating = 'P' | 'K' | 'T13' | 'T16' | 'T18' | 'C';
+export type AgeRating = 'P' | 'K' | 'T13' | 'T16' | 'T18' | 'C' | 'UNRATED';
+
+export type MovieStatus = 'now_showing' | 'coming_soon' | 'ended' | 'hidden';
 
 export type UserRole = 'customer' | 'staff' | 'admin';
 
@@ -22,14 +24,18 @@ export interface Movie {
   duration: number; // in minutes
   releaseDate: string;
   ageRating: AgeRating;
+  certificationOrigin?: string;
+  tmdbId?: number;
   genres: string[];
   director: string;
   cast: string[];
   synopsis: string;
   rating: number; // e.g. 8.8 / 10
   reviewCount: number;
+  status?: MovieStatus;
   isNowShowing: boolean;
   isComingSoon: boolean;
+  isEnded?: boolean;
   isFeatured?: boolean;
 }
 

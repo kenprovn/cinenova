@@ -44,3 +44,10 @@ supabase/.temp/
 Thumbs.db
 Desktop.ini
 
+# Database backups & dumps
+*.dump
+*.backup
+*.tar
+
+.env.tmdb
+

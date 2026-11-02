@@ -1,6 +1,15 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Ticket, Star, Sparkles, ChevronRight, Clapperboard, Award, Database } from 'lucide-react';
+import {
+  Ticket,
+  Star,
+  Sparkles,
+  ChevronRight,
+  ChevronLeft,
+  Clapperboard,
+  Award,
+  Database,
+} from 'lucide-react';
 import { MOCK_MOVIES, MOCK_CINEMAS } from '../../data/mockData';
 import { MovieCard } from '../../components/movies/MovieCard';
 import { AgeBadge } from '../../components/common/Badge';
@@ -16,6 +25,11 @@ export const HomePage: React.FC = () => {
   const [selectedQuickMovie, setSelectedQuickMovie] = useState<string>('');
   const [selectedQuickCinema, setSelectedQuickCinema] = useState<string>('');
   const [isFromDb, setIsFromDb] = useState(false);
+
+  // Carousel ref and scroll states
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,6 +54,37 @@ export const HomePage: React.FC = () => {
   const heroMovie = movies.find((m) => m.isFeatured) || movies[0] || MOCK_MOVIES[0];
   const nowShowingMovies = movies.filter((m) => m.isNowShowing);
   const comingSoonMovies = movies.filter((m) => m.isComingSoon);
+  const currentTabMovies = activeTab === 'now' ? nowShowingMovies : comingSoonMovies;
+
+  const updateCarouselState = useCallback(() => {
+    if (!carouselRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+  }, []);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (!carouselRef.current) return;
+    const container = carouselRef.current;
+    const scrollAmount = container.clientWidth * 0.82;
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  useEffect(() => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+    const timer = setTimeout(updateCarouselState, 60);
+    return () => clearTimeout(timer);
+  }, [activeTab, currentTabMovies.length, updateCarouselState]);
+
+  useEffect(() => {
+    window.addEventListener('resize', updateCarouselState);
+    return () => window.removeEventListener('resize', updateCarouselState);
+  }, [updateCarouselState]);
 
   const handleQuickBook = () => {
     if (selectedQuickMovie) {
@@ -114,10 +159,10 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3 sm:pt-4 w-full sm:w-auto">
               <button
                 onClick={() => navigate(`/booking/${heroMovie.id}`)}
-                className="px-6 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2 shadow-glow-primary transition-all duration-200 active:scale-95"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all duration-200 active:scale-95 touch-manipulation"
               >
                 <Ticket className="w-5 h-5" />
                 <span>Đặt vé ngay</span>
@@ -125,7 +170,7 @@ export const HomePage: React.FC = () => {
 
               <Link
                 to={`/movies/${heroMovie.id}`}
-                className="px-5 py-3.5 rounded-xl bg-surface-light/80 hover:bg-surface-light text-cinetext-primary font-semibold text-sm border border-surface-border flex items-center gap-2 transition-all backdrop-blur-md"
+                className="w-full sm:w-auto min-h-[44px] px-5 py-3.5 rounded-xl bg-surface-light/80 hover:bg-surface-light text-cinetext-primary font-semibold text-sm border border-surface-border flex items-center justify-center gap-2 transition-all backdrop-blur-md active:scale-95 touch-manipulation"
               >
                 <Clapperboard className="w-4 h-4 text-gold" />
                 <span>Thông tin phim</span>
@@ -136,7 +181,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* QUICK BOOKING BAR */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 relative z-20">
         <div className="glass-panel p-4 sm:p-6 rounded-2xl shadow-2xl border border-surface-border">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -157,7 +202,7 @@ export const HomePage: React.FC = () => {
                   setSelectedQuickMovie(e.target.value);
                   if (e.target.value) navigate(`/booking/${e.target.value}`);
                 }}
-                className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-primary"
+                className="bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-lg px-3 py-2.5 min-h-[44px] focus:outline-none focus:border-primary"
               >
                 <option value="">1. Chọn Phim...</option>
                 {nowShowingMovies.map((m) => (
@@ -170,7 +215,7 @@ export const HomePage: React.FC = () => {
               <select
                 value={selectedQuickCinema}
                 onChange={(e) => setSelectedQuickCinema(e.target.value)}
-                className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-primary"
+                className="bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-lg px-3 py-2.5 min-h-[44px] focus:outline-none focus:border-primary"
               >
                 {cinemas.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -181,7 +226,7 @@ export const HomePage: React.FC = () => {
 
               <button
                 onClick={handleQuickBook}
-                className="bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg py-2.5 px-4 flex items-center justify-center gap-1.5 transition-colors"
+                className="bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg py-2.5 px-4 min-h-[44px] flex items-center justify-center gap-1.5 transition-colors active:scale-95 touch-manipulation"
               >
                 <span>Xem lịch chiếu</span>
                 <ChevronRight className="w-4 h-4" />
@@ -191,9 +236,9 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* MOVIES TABS SECTION */}
+      {/* MOVIES HORIZONTAL CAROUSEL SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="heading-font text-2xl sm:text-3xl font-extrabold text-white">
               Khám Phá Phim
@@ -203,36 +248,115 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
 
-          {/* Tab buttons */}
-          <div className="flex items-center gap-2 bg-surface p-1 rounded-xl border border-surface-border self-start sm:self-auto">
-            <button
-              onClick={() => setActiveTab('now')}
-              className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                activeTab === 'now'
-                  ? 'bg-primary text-white shadow-glow-primary'
-                  : 'text-cinetext-secondary hover:text-white'
-              }`}
-            >
-              Đang Chiếu ({nowShowingMovies.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('soon')}
-              className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                activeTab === 'soon'
-                  ? 'bg-primary text-white shadow-glow-primary'
-                  : 'text-cinetext-secondary hover:text-white'
-              }`}
-            >
-              Sắp Chiếu ({comingSoonMovies.length})
-            </button>
+          {/* Right Header Controls: Tabs & Carousel Nav Arrows */}
+          <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+            {/* Tab buttons */}
+            <div className="flex items-center gap-1.5 bg-surface p-1 rounded-xl border border-surface-border">
+              <button
+                onClick={() => setActiveTab('now')}
+                className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all touch-manipulation ${
+                  activeTab === 'now'
+                    ? 'bg-primary text-white shadow-glow-primary'
+                    : 'text-cinetext-secondary hover:text-white'
+                }`}
+              >
+                Đang Chiếu ({nowShowingMovies.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('soon')}
+                className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all touch-manipulation ${
+                  activeTab === 'soon'
+                    ? 'bg-primary text-white shadow-glow-primary'
+                    : 'text-cinetext-secondary hover:text-white'
+                }`}
+              >
+                Sắp Chiếu ({comingSoonMovies.length})
+              </button>
+            </div>
+
+            {/* Nav Arrows */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleScroll('left')}
+                disabled={!canScrollLeft}
+                aria-label="Xem phim trước"
+                title="Xem phim trước"
+                className="w-10 h-10 rounded-xl bg-surface hover:bg-surface-light border border-surface-border text-cinetext-primary hover:text-white hover:border-gold disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 touch-manipulation shadow-md"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => handleScroll('right')}
+                disabled={!canScrollRight}
+                aria-label="Xem phim tiếp theo"
+                title="Xem phim tiếp theo"
+                className="w-10 h-10 rounded-xl bg-surface hover:bg-surface-light border border-surface-border text-cinetext-primary hover:text-white hover:border-gold disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 touch-manipulation shadow-md"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Movie Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-          {(activeTab === 'now' ? nowShowingMovies : comingSoonMovies).map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
-          ))}
+        {/* Carousel Container with CSS Scroll Snap */}
+        <div className="relative group">
+          {/* Floating Left Arrow (Desktop xl) */}
+          {canScrollLeft && (
+            <button
+              onClick={() => handleScroll('left')}
+              aria-label="Cuộn sang trái"
+              className="hidden xl:flex absolute -left-5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-surface/90 hover:bg-surface border border-surface-border hover:border-gold text-white items-center justify-center shadow-xl backdrop-blur-md z-20 transition-all active:scale-95 cursor-pointer"
+            >
+              <ChevronLeft className="w-6 h-6 text-gold" />
+            </button>
+          )}
+
+          {/* Floating Right Arrow (Desktop xl) */}
+          {canScrollRight && (
+            <button
+              onClick={() => handleScroll('right')}
+              aria-label="Cuộn sang phải"
+              className="hidden xl:flex absolute -right-5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-surface/90 hover:bg-surface border border-surface-border hover:border-gold text-white items-center justify-center shadow-xl backdrop-blur-md z-20 transition-all active:scale-95 cursor-pointer"
+            >
+              <ChevronRight className="w-6 h-6 text-gold" />
+            </button>
+          )}
+
+          {/* Horizontal Track */}
+          <div
+            ref={carouselRef}
+            onScroll={updateCarouselState}
+            tabIndex={0}
+            role="region"
+            aria-label="Danh sách phim chọn lọc"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft') handleScroll('left');
+              if (e.key === 'ArrowRight') handleScroll('right');
+            }}
+            className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar touch-pan-x py-2 px-1 focus:outline-none focus:ring-1 focus:ring-gold/30 rounded-2xl"
+          >
+            {currentTabMovies.map((movie) => (
+              <div
+                key={movie.id}
+                className="snap-start shrink-0 flex-none w-[68vw] min-w-[210px] max-w-[260px] sm:w-[calc(50%-12px)] sm:max-w-none md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] xl:w-[calc(20%-19.2px)]"
+              >
+                <MovieCard movie={movie} />
+              </div>
+            ))}
+          </div>
+
+          {/* Subtle Indicator / Helper */}
+          {currentTabMovies.length > 5 && (
+            <div className="flex items-center justify-between text-[11px] text-cinetext-muted px-2 pt-3">
+              <span>
+                Đang hiển thị <strong>{currentTabMovies.length}</strong> phim • Sử dụng mũi tên hoặc vuốt ngang để xem tiếp
+              </span>
+              <div className="hidden sm:flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full transition-colors ${canScrollLeft ? 'bg-zinc-600' : 'bg-gold'}`} />
+                <span className={`w-2 h-2 rounded-full transition-colors ${canScrollRight ? 'bg-gold' : 'bg-zinc-600'}`} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* View all link */}
@@ -259,7 +383,7 @@ export const HomePage: React.FC = () => {
               Công Nghệ Chiếu Phim Hàng Đầu Thế Giới Tại CINENOVA
             </h2>
             <p className="text-cinetext-secondary text-sm leading-relaxed">
-              Tất cả các rạp trong hệ thống CINENOVA đều được trang bị hệ thống màn chiếu khổng lồ IMAX Laser với độ phân giải siêu nét, âm thanh vòm Dolby Atmos 360 độ và ghế ngồi bọc da cao cấp điều chỉnh độ ngả lưng.
+              Hệ thống cụm rạp CINENOVA mang đến trải nghiệm điện ảnh đa dạng với các phòng chiếu chuyên biệt: phòng chiếu IMAX Laser màn hình cực đại tại các rạp tiêu biểu, âm thanh vòm Dolby Atmos sống động và khu vực ghế VIP Recliner cao cấp (thông số kỹ thuật hiển thị chi tiết theo từng suất chiếu thực tế).
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
               <div className="bg-background/60 p-4 rounded-xl border border-surface-border">

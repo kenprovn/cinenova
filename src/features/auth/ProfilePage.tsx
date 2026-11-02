@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   User,
@@ -417,7 +417,7 @@ export const ProfilePage: React.FC = () => {
                   type="email"
                   disabled
                   value={user.email || ''}
-                  className="w-full bg-surface-light/40 border border-surface-border text-cinetext-muted text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 cursor-not-allowed"
+                  className="w-full bg-surface-light/40 border border-surface-border text-cinetext-muted text-base sm:text-sm rounded-xl pl-10 pr-4 py-2.5 min-h-[44px] cursor-not-allowed"
                 />
               </div>
               <p className="text-[11px] text-cinetext-muted mt-1">
@@ -436,7 +436,7 @@ export const ProfilePage: React.FC = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Nhập họ và tên"
-                  className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl pl-10 pr-4 py-2.5 min-h-[44px] focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -452,7 +452,7 @@ export const ProfilePage: React.FC = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="0912345678"
-                  className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-light border border-surface-border text-white text-base sm:text-sm rounded-xl pl-10 pr-4 py-2.5 min-h-[44px] focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -461,7 +461,7 @@ export const ProfilePage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-glow-primary transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-glow-primary transition-all active:scale-95 touch-manipulation flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <>
@@ -482,11 +482,12 @@ export const ProfilePage: React.FC = () => {
 
       {/* QR ZOOM MODAL */}
       {selectedTicketForModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl border border-surface-border max-w-sm w-full p-6 space-y-4 text-center shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface rounded-2xl border border-surface-border max-w-xs sm:max-w-sm w-full p-4 sm:p-6 space-y-4 text-center shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedTicketForModal(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg bg-surface-light text-cinetext-muted hover:text-white transition-colors"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-lg bg-surface-light text-cinetext-muted hover:text-white transition-colors touch-manipulation"
+              aria-label="Đóng modal"
             >
               <X className="w-4 h-4" />
             </button>
@@ -507,7 +508,7 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             <div className="flex justify-center p-3 bg-white rounded-xl shadow-inner mx-auto w-fit">
-              <QRCodeCanvas value={selectedTicketForModal.qrToken} size={180} />
+              <QRCodeCanvas value={selectedTicketForModal.qrToken} size={160} />
             </div>
 
             <div className="space-y-1 text-xs">
@@ -516,7 +517,7 @@ export const ProfilePage: React.FC = () => {
                 <span className="font-mono font-bold text-white">{selectedTicketForModal.ticketCode}</span>
                 <button
                   onClick={() => copyToClipboard(selectedTicketForModal.ticketCode)}
-                  className="text-cinetext-muted hover:text-white p-0.5"
+                  className="text-cinetext-muted hover:text-white p-1.5 touch-manipulation"
                   title="Sao chép mã"
                 >
                   {copiedCode === selectedTicketForModal.ticketCode ? (
@@ -546,7 +547,7 @@ export const ProfilePage: React.FC = () => {
 
             <button
               onClick={() => setSelectedTicketForModal(null)}
-              className="w-full py-2.5 bg-surface-light hover:bg-surface text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors"
+              className="w-full min-h-[44px] py-2.5 bg-surface-light hover:bg-surface text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors touch-manipulation active:scale-95"
             >
               Đóng cửa sổ
             </button>

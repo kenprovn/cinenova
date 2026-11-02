@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -349,7 +349,7 @@ export const SeatSelectionPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-32 lg:pb-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-36 sm:pb-32 lg:pb-12">
       {/* Top Breadcrumb & Step Info */}
       <div className="flex items-center justify-between">
         <button
@@ -474,8 +474,14 @@ export const SeatSelectionPage: React.FC = () => {
             </span>
           </div>
 
+          {/* Mobile Swipe Hint */}
+          <div className="flex items-center justify-between sm:hidden text-[11px] text-cinetext-muted bg-surface-light/70 px-3 py-2 rounded-xl border border-surface-border">
+            <span>👈 Vuốt ngang để chọn ghế 👉</span>
+            <span className="text-gold font-medium">8 hàng × 12 ghế</span>
+          </div>
+
           {/* Seat Grid Layout */}
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-4 -mx-2 sm:mx-0 px-2 sm:px-0">
             {isLoadingSeats ? (
               <div className="py-20 text-center space-y-3">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -511,7 +517,7 @@ export const SeatSelectionPage: React.FC = () => {
                                     ? `Ghế ${seat.seatNumber} đã được bán`
                                     : `Ghế ${seat.seatNumber} (${seat.type.toUpperCase()}) - ${formatCurrency(seat.price)}`
                                 }
-                                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-t-lg rounded-b-sm border text-[10px] sm:text-[11px] font-semibold flex items-center justify-center transition-all duration-150 ${getSeatClass(
+                                className={`w-8 h-8 min-w-[32px] min-h-[32px] rounded-t-lg rounded-b-sm border text-[10px] sm:text-[11px] font-semibold flex items-center justify-center transition-all duration-150 touch-manipulation active:scale-95 ${getSeatClass(
                                   seat
                                 )}`}
                               >
@@ -654,25 +660,33 @@ export const SeatSelectionPage: React.FC = () => {
       </div>
 
       {/* Floating Bottom Bar for Mobile Screen */}
-      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-surface/95 backdrop-blur-md border-t border-surface-border p-4 z-40 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-surface/98 backdrop-blur-lg border-t border-surface-border px-4 py-3 z-40 shadow-2xl safe-area-pb">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-cinetext-muted">
-              {bookingState.selectedSeats.length > 0
-                ? `${bookingState.selectedSeats.map((s) => s.seatNumber).join(', ')}`
-                : 'Chưa chọn ghế'}
-            </p>
-            <p className="text-lg font-bold text-gold">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-cinetext-muted truncate">
+                {bookingState.selectedSeats.length > 0
+                  ? `${bookingState.selectedSeats.length} ghế: ${bookingState.selectedSeats.map((s) => s.seatNumber).join(', ')}`
+                  : 'Chưa chọn ghế'}
+              </p>
+              {remainingSeconds !== null && remainingSeconds > 0 && (
+                <span className="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold text-gold bg-gold/15 px-1.5 py-0.5 rounded border border-gold/30">
+                  <Clock className="w-3 h-3" />
+                  {formatCountdown(remainingSeconds)}
+                </span>
+              )}
+            </div>
+            <p className="text-lg font-bold text-gold leading-tight">
               {formatCurrency(totalAmount)}
             </p>
           </div>
           <button
             onClick={() => navigate('/checkout')}
             disabled={bookingState.selectedSeats.length === 0}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+            className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all touch-manipulation shrink-0 ${
               bookingState.selectedSeats.length > 0
-                ? 'bg-primary text-white shadow-glow-primary active:scale-95'
-                : 'bg-surface-light text-cinetext-muted cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary-hover text-white shadow-glow-primary active:scale-95'
+                : 'bg-surface-light text-cinetext-muted border border-surface-border cursor-not-allowed'
             }`}
           >
             <span>Thanh toán</span>

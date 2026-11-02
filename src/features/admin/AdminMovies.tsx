@@ -8,6 +8,9 @@ import { Movie, AgeRating } from '../../types';
 export const AdminMovies: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);
   const [searchTerm, setSearchTerm] = useState('');
+  const [adminStatusFilter, setAdminStatusFilter] = useState<'all' | 'now' | 'soon' | 'ended'>('all');
+  const [adminPage, setAdminPage] = useState<number>(1);
+  const ADMIN_PAGE_SIZE = 20;
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -178,11 +181,22 @@ export const AdminMovies: React.FC = () => {
     }
   };
 
-  const filtered = movies.filter(
-    (m) =>
+  const filtered = movies.filter((m) => {
+    const matchSearch =
       m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.director.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      m.originalTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.director.toLowerCase().includes(searchTerm.toLowerCase());
+
+    let matchStatus = true;
+    if (adminStatusFilter === 'now') matchStatus = Boolean(m.isNowShowing);
+    else if (adminStatusFilter === 'soon') matchStatus = Boolean(m.isComingSoon);
+    else if (adminStatusFilter === 'ended') matchStatus = Boolean(m.isEnded);
+
+    return matchSearch && matchStatus;
+  });
+
+  const totalPages = Math.ceil(filtered.length / ADMIN_PAGE_SIZE) || 1;
+  const paginatedMovies = filtered.slice((adminPage - 1) * ADMIN_PAGE_SIZE, adminPage * ADMIN_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -219,20 +233,67 @@ export const AdminMovies: React.FC = () => {
         </div>
       )}
 
-      {/* Search & Stats Bar */}
-      <div className="bg-surface p-4 rounded-xl border border-surface-border flex items-center justify-between gap-4">
+      {/* Search & Stats Bar with Status Filter */}
+      <div className="bg-surface p-4 rounded-xl border border-surface-border flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cinetext-muted" />
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setAdminPage(1);
+            }}
             placeholder="Tìm theo tên phim, đạo diễn..."
             className="w-full bg-surface-light border border-surface-border text-white text-xs rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-primary"
           />
         </div>
-        <span className="text-xs text-cinetext-muted">
-          Tổng cộng: <strong>{filtered.length}</strong> phim
+
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => { setAdminStatusFilter('all'); setAdminPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              adminStatusFilter === 'all'
+                ? 'bg-primary text-white shadow-glow-primary'
+                : 'bg-surface-light text-cinetext-secondary hover:text-white border border-surface-border'
+            }`}
+          >
+            Tất cả ({movies.length})
+          </button>
+          <button
+            onClick={() => { setAdminStatusFilter('now'); setAdminPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              adminStatusFilter === 'now'
+                ? 'bg-primary text-white shadow-glow-primary'
+                : 'bg-surface-light text-cinetext-secondary hover:text-white border border-surface-border'
+            }`}
+          >
+            Đang chiếu ({movies.filter((m) => m.isNowShowing).length})
+          </button>
+          <button
+            onClick={() => { setAdminStatusFilter('soon'); setAdminPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              adminStatusFilter === 'soon'
+                ? 'bg-primary text-white shadow-glow-primary'
+                : 'bg-surface-light text-cinetext-secondary hover:text-white border border-surface-border'
+            }`}
+          >
+            Sắp chiếu ({movies.filter((m) => m.isComingSoon).length})
+          </button>
+          <button
+            onClick={() => { setAdminStatusFilter('ended'); setAdminPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              adminStatusFilter === 'ended'
+                ? 'bg-primary text-white shadow-glow-primary'
+                : 'bg-surface-light text-cinetext-secondary hover:text-white border border-surface-border'
+            }`}
+          >
+            Thư viện ({movies.filter((m) => m.isEnded).length})
+          </button>
+        </div>
+
+        <span className="text-xs text-cinetext-muted whitespace-nowrap">
+          Hiển thị: <strong>{paginatedMovies.length}</strong> / <strong>{filtered.length}</strong> phim
         </span>
       </div>
 
@@ -252,7 +313,7 @@ export const AdminMovies: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border text-cinetext-secondary">
-              {filtered.map((movie) => (
+              {paginatedMovies.map((movie) => (
                 <tr key={movie.id} className="hover:bg-surface-light/40 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -313,6 +374,31 @@ export const AdminMovies: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {totalPages > 1 && (
+          <div className="p-4 bg-surface-light border-t border-surface-border flex items-center justify-between text-xs text-cinetext-secondary">
+            <span>
+              Trang <strong>{adminPage}</strong> / <strong>{totalPages}</strong> (Tổng {filtered.length} phim)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={adminPage <= 1}
+                onClick={() => setAdminPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-lg bg-surface border border-surface-border disabled:opacity-40 disabled:cursor-not-allowed hover:text-white"
+              >
+                Trang trước
+              </button>
+              <button
+                disabled={adminPage >= totalPages}
+                onClick={() => setAdminPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 rounded-lg bg-surface border border-surface-border disabled:opacity-40 disabled:cursor-not-allowed hover:text-white"
+              >
+                Trang sau
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Movie Modal */}

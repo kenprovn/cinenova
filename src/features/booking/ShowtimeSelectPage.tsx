@@ -1,10 +1,11 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Clock, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Clock, ChevronRight, AlertCircle, Loader2, Film } from 'lucide-react';
 import { MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';
 import { useBooking } from './BookingContext';
 import { formatCurrency } from '../../lib/utils';
+import { normalizeGenre } from '../../lib/genreUtils';
 import { movieService, resolveMovieId, UUID_REGEX } from '../../services/movieService';
 import { showtimeService } from '../../services/showtimeService';
 import { cinemaService, resolveCinemaId } from '../../services/cinemaService';
@@ -163,7 +164,7 @@ export const ShowtimeSelectPage: React.FC = () => {
         <div className="space-y-2 text-center sm:text-left flex-1">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <AgeBadge rating={movie.ageRating} />
-            <span className="text-xs text-gold font-bold">{movie.genres.join(', ')}</span>
+            <span className="text-xs text-gold font-bold">{movie.genres.map(normalizeGenre).join(', ')}</span>
           </div>
           <h1 className="heading-font text-xl sm:text-2xl font-bold text-white">
             {movie.title}
@@ -179,8 +180,40 @@ export const ShowtimeSelectPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Selection Area */}
-      <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-8">
+      {/* Guard if movie is NOT now showing (e.g. ended/library or coming_soon) */}
+      {!movie.isNowShowing ? (
+        <div className="bg-surface p-6 sm:p-10 rounded-2xl border border-surface-border text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto text-gold">
+            <Film className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-white">
+              {movie.isComingSoon ? 'Phim Sắp Khởi Chiếu' : 'Phim Thư Viện Điện Ảnh'}
+            </h2>
+            <p className="text-xs sm:text-sm text-cinetext-secondary max-w-md mx-auto">
+              {movie.isComingSoon
+                ? `Bộ phim "${movie.title}" hiện chưa mở bán vé trực tuyến. Quý khách vui lòng theo dõi lịch chiếu trong thời gian tới.`
+                : `Bộ phim "${movie.title}" thuộc kho phim Thư viện Điện ảnh phục vụ tra cứu thông tin và trailer, hiện không mở bán vé thương mại.`}
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/movies?tab=now"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-glow-primary"
+            >
+              Xem các phim đang chiếu để đặt vé
+            </Link>
+            <Link
+              to={`/movies/${movie.id}`}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs font-semibold border border-surface-border transition-colors"
+            >
+              Xem thông tin chi tiết phim
+            </Link>
+          </div>
+        </div>
+      ) : (
+        /* Main Selection Area */
+        <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-8">
         {/* Cinema Selection */}
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -194,7 +227,7 @@ export const ShowtimeSelectPage: React.FC = () => {
                 <button
                   key={cinema.id}
                   onClick={() => setSelectedCinemaId(cinema.id)}
-                  className={`p-4 rounded-xl border text-left transition-all ${
+                  className={`p-4 rounded-xl border text-left transition-all touch-manipulation active:scale-[0.99] ${
                     isSelected
                       ? 'bg-surface-light border-primary shadow-glow-primary/30'
                       : 'bg-surface-light/40 border-surface-border hover:border-zinc-600'
@@ -219,14 +252,14 @@ export const ShowtimeSelectPage: React.FC = () => {
             <Calendar className="w-4 h-4 text-primary" />
             2. Chọn Ngày Xem
           </h2>
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 no-scrollbar">
             {dates.map((d) => {
               const isSelected = selectedDate === d.dateStr;
               return (
                 <button
                   key={d.dateStr}
                   onClick={() => setSelectedDate(d.dateStr)}
-                  className={`flex flex-col items-center justify-center min-w-[76px] px-3 py-3 rounded-xl border text-center transition-all shrink-0 ${
+                  className={`flex flex-col items-center justify-center min-w-[76px] min-h-[58px] px-3 py-3 rounded-xl border text-center transition-all shrink-0 touch-manipulation ${
                     isSelected
                       ? 'bg-primary text-white border-primary shadow-glow-primary scale-105'
                       : 'bg-surface-light text-cinetext-secondary border-surface-border hover:text-white hover:border-zinc-600'
@@ -327,6 +360,7 @@ export const ShowtimeSelectPage: React.FC = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };
