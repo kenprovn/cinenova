@@ -1,18 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Ticket, Star, Sparkles, ChevronRight, Clapperboard, Award } from 'lucide-react';
+import { Ticket, Star, Sparkles, ChevronRight, Clapperboard, Award, Database } from 'lucide-react';
 import { MOCK_MOVIES } from '../../data/mockData';
 import { MovieCard } from '../../components/movies/MovieCard';
 import { AgeBadge } from '../../components/common/Badge';
+import { movieService } from '../../services/movieService';
+import { Movie } from '../../types';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'now' | 'soon'>('now');
+  const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);
+  const [isFromDb, setIsFromDb] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    movieService.getMovies().then((res) => {
+      if (isMounted && res.data.length > 0) {
+        setMovies(res.data);
+        setIsFromDb(res.isFromDb);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Prominent hero movie
-  const heroMovie = MOCK_MOVIES.find((m) => m.isFeatured) || MOCK_MOVIES[0];
-  const nowShowingMovies = MOCK_MOVIES.filter((m) => m.isNowShowing);
-  const comingSoonMovies = MOCK_MOVIES.filter((m) => m.isComingSoon);
+  const heroMovie = movies.find((m) => m.isFeatured) || movies[0] || MOCK_MOVIES[0];
+  const nowShowingMovies = movies.filter((m) => m.isNowShowing);
+  const comingSoonMovies = movies.filter((m) => m.isComingSoon);
 
   return (
     <div className="space-y-16 pb-20 overflow-x-hidden">
@@ -45,6 +62,12 @@ export const HomePage: React.FC = () => {
                 <Star className="w-4 h-4 fill-gold text-gold" />
                 {heroMovie.rating} / 10
               </span>
+              {isFromDb && (
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1">
+                  <Database className="w-3 h-3" />
+                  Live Supabase
+                </span>
+              )}
             </div>
 
             {/* Title */}

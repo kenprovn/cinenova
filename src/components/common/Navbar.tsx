@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Clapperboard, Shield, User, Menu, X, Ticket } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../features/auth/AuthContext';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, profile, isAdmin } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +34,8 @@ export const Navbar: React.FC = () => {
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
+
+  const displayName = profile?.fullName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Tài khoản');
 
   return (
     <header
@@ -79,14 +83,16 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              to="/admin"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-surface-border text-cinetext-secondary hover:text-gold hover:border-gold/40 transition-all duration-200"
-              title="Khu vực Quản trị rạp (Demo)"
-            >
-              <Shield className="w-3.5 h-3.5 text-gold" />
-              <span>Admin Portal</span>
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-gold/40 text-gold hover:bg-gold/10 transition-all duration-200"
+                title="Khu vực Quản trị rạp"
+              >
+                <Shield className="w-3.5 h-3.5 text-gold" />
+                <span>Admin Portal</span>
+              </Link>
+            )}
 
             <Link
               to="/movies"
@@ -96,13 +102,26 @@ export const Navbar: React.FC = () => {
               <span>Mua vé</span>
             </Link>
 
-            <Link
-              to="/login"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-cinetext-secondary hover:text-white transition-colors"
-            >
-              <User className="w-4 h-4" />
-              <span>Đăng nhập</span>
-            </Link>
+            {user ? (
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-light hover:bg-surface border border-surface-border text-sm font-medium text-white transition-colors"
+                title="Quản lý tài khoản"
+              >
+                <div className="w-6 h-6 rounded-full bg-gold/20 text-gold border border-gold/40 flex items-center justify-center text-xs font-bold">
+                  {displayName[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="max-w-[120px] truncate text-xs">{displayName}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-cinetext-secondary hover:text-white transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span>Đăng nhập</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -145,23 +164,36 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="pt-3 border-t border-surface-border space-y-2">
-            <Link
-              to="/admin"
-              className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold bg-surface-light border border-gold/30"
-            >
-              <span className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                <span>Khu vực Quản trị (Admin Demo)</span>
-              </span>
-              <span className="text-xs bg-gold/20 px-2 py-0.5 rounded text-gold">DEMO</span>
-            </Link>
-            <Link
-              to="/login"
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-cinetext-primary hover:bg-surface-light"
-            >
-              <User className="w-4 h-4" />
-              <span>Đăng nhập / Đăng ký</span>
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold bg-surface-light border border-gold/30"
+              >
+                <span className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  <span>Khu vực Quản trị (Admin)</span>
+                </span>
+                <span className="text-xs bg-gold/20 px-2 py-0.5 rounded text-gold">ADMIN</span>
+              </Link>
+            )}
+
+            {user ? (
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white hover:bg-surface-light"
+              >
+                <User className="w-4 h-4 text-gold" />
+                <span>Tài khoản: {displayName}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-cinetext-primary hover:bg-surface-light"
+              >
+                <User className="w-4 h-4" />
+                <span>Đăng nhập / Đăng ký</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

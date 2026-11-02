@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clapperboard, Lock, Mail, User, Phone, ShieldAlert } from 'lucide-react';
+import { Clapperboard, Lock, Mail, User, Phone, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAuth } from './AuthContext';
+import { isSupabaseConfigured } from '../../lib/supabase';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -12,7 +16,9 @@ export const RegisterPage: React.FC = () => {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
   const validate = () => {
     const errs: { [key: string]: string } = {};
@@ -40,10 +46,31 @@ export const RegisterPage: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     if (!validate()) return;
-    setSubmitted(true);
+
+    setIsLoading(true);
+
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      setAuthError('Supabase chưa được cấu hình. Vui lòng kiểm tra file .env.local.');
+      return;
+    }
+
+    const { error } = await signUp(formData.email, formData.password, formData.fullName, formData.phone);
+    setIsLoading(false);
+
+    if (error) {
+      if (error.includes('already registered')) {
+        setAuthError('Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.');
+      } else {
+        setAuthError(error);
+      }
+    } else {
+      setSuccessInfo('Đăng ký tài khoản thành công! Bạn có thể sử dụng thông tin này để đăng nhập ngay bây giờ.');
+    }
   };
 
   return (
@@ -60,31 +87,32 @@ export const RegisterPage: React.FC = () => {
           </Link>
           <h1 className="text-xl font-bold text-white">Đăng Ký Thành Viên</h1>
           <p className="text-xs text-cinetext-secondary">
-            Tận hưởng đặc quyền tích lũy điểm và ưu đãi vé xem phim
+            Tạo tài khoản lưu trữ bảo mật trên Supabase Auth
           </p>
         </div>
 
-        <div className="bg-surface-light border border-surface-border rounded-xl p-3 text-xs text-cinetext-muted flex items-start gap-2">
-          <ShieldAlert className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-          <p>
-            <strong>Giao diện demo (Phase 1):</strong> Chưa kết nối lưu dữ liệu người dùng thật. Không nhập mật khẩu cá nhân quan trọng của bạn.
-          </p>
-        </div>
+        {authError && (
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3.5 rounded-xl text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{authError}</span>
+          </div>
+        )}
 
-        {submitted ? (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center space-y-3">
-            <p className="text-sm font-semibold text-emerald-400">
-              Đăng ký thử nghiệm thành công!
-            </p>
+        {successInfo ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5 text-center space-y-3">
+            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
+            <h2 className="text-sm font-bold text-emerald-400">{successInfo}</h2>
             <p className="text-xs text-cinetext-secondary">
-              Form đã được kiểm tra tính hợp lệ. Tính năng tạo tài khoản chính thức qua Supabase Auth sẽ ra mắt trong Phase 2.
+              Nếu Supabase của bạn bật yêu cầu xác nhận email (Confirm Email), hãy kiểm tra hộp thư trước khi đăng nhập.
             </p>
-            <button
-              onClick={() => navigate('/login')}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg"
-            >
-              Chuyển tới đăng nhập
-            </button>
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase rounded-xl tracking-wider transition-colors"
+              >
+                Chuyển tới Đăng nhập
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3.5 text-xs sm:text-sm">
@@ -177,9 +205,17 @@ export const RegisterPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs uppercase tracking-wider shadow-glow-primary transition-all active:scale-95 mt-2"
+              disabled={isLoading}
+              className="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs uppercase tracking-wider shadow-glow-primary transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
             >
-              Đăng ký tài khoản (Demo)
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Đang xử lý đăng ký...</span>
+                </>
+              ) : (
+                <span>Tạo tài khoản</span>
+              )}
             </button>
           </form>
         )}
@@ -194,4 +230,3 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
-

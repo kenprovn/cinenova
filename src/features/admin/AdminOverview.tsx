@@ -1,10 +1,20 @@
-import React from 'react';
-import { DollarSign, Ticket, Users, TrendingUp, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, Ticket, Users, TrendingUp, Sparkles, Database } from 'lucide-react';
 import { MOCK_ADMIN_STATS } from '../../data/mockData';
 import { formatCurrency } from '../../lib/utils';
+import { adminService } from '../../services/adminService';
+import { AdminStats } from '../../types';
 
 export const AdminOverview: React.FC = () => {
-  const stats = MOCK_ADMIN_STATS;
+  const [stats, setStats] = useState<AdminStats>(MOCK_ADMIN_STATS);
+  const [isLiveDb, setIsLiveDb] = useState(false);
+
+  useEffect(() => {
+    adminService.getDashboardStats().then((res) => {
+      setStats(res.stats);
+      setIsLiveDb(res.isLiveDb);
+    });
+  }, []);
 
   // Max revenue for CSS bar chart calculation
   const maxRevenue = Math.max(...stats.revenueByDay.map((d) => d.revenue));
@@ -18,12 +28,21 @@ export const AdminOverview: React.FC = () => {
             Báo Cáo Tổng Quan Rạp Chiếu
           </h1>
           <p className="text-xs sm:text-sm text-cinetext-secondary mt-1">
-            Số liệu thống kê doanh thu, lưu lượng vé và hiệu suất phòng chiếu (Dữ liệu mô phỏng)
+            Số liệu thống kê doanh thu, lưu lượng vé và hiệu suất phòng chiếu {isLiveDb ? '(Live Supabase)' : '(Dữ liệu minh họa)'}
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto bg-surface p-1.5 rounded-xl border border-surface-border text-xs text-cinetext-muted">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>Hệ thống hoạt động ổn định</span>
+          {isLiveDb ? (
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <Database className="w-3.5 h-3.5" />
+              <span>Dữ liệu thực từ Supabase</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-gold font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Chế độ mô phỏng KPI Phase 1</span>
+            </span>
+          )}
         </div>
       </div>
 

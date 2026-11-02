@@ -114,10 +114,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
           <div className="bg-surface-light/60 p-3 rounded-xl border border-surface-border space-y-1">
             <div className="flex items-center gap-1.5 text-gold text-xs font-bold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Dữ liệu mẫu Phase 1</span>
+              <span>Quản trị Phase 2 (Supabase)</span>
             </div>
             <p className="text-[11px] text-cinetext-muted leading-tight">
-              Toàn bộ thống kê, phim và đơn đặt vé là dữ liệu mô phỏng cho giao diện quản lý.
+              Quản lý danh mục phim, suất chiếu và kiểm soát phân quyền qua PostgreSQL RLS.
             </p>
           </div>
 

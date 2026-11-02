@@ -1,5 +1,16 @@
 export type AgeRating = 'P' | 'K' | 'T13' | 'T16' | 'T18' | 'C';
 
+export type UserRole = 'customer' | 'staff' | 'admin';
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  phone?: string;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Movie {
   id: string;
   title: string;
@@ -28,6 +39,15 @@ export interface Cinema {
   address: string;
   city: string;
   phone: string;
+}
+
+export interface Room {
+  id: string;
+  cinemaId: string;
+  name: string;
+  roomType: 'standard' | 'imax_laser' | 'deluxe' | 'vip';
+  capacity: number;
+  status: 'active' | 'maintenance' | 'inactive';
 }
 
 export type SeatType = 'regular' | 'vip' | 'couple';
@@ -110,4 +130,3 @@ export interface AdminStats {
   revenueByDay: { day: string; revenue: number; tickets: number }[];
   popularMovies: { title: string; tickets: number; revenue: number; percentage: number }[];
 }
-

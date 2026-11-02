@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Ticket, QrCode, CheckCircle2, AlertTriangle, CreditCard, Wallet, Smartphone, Printer, Home } from 'lucide-react';
 import { useBooking } from './BookingContext';
 import { formatCurrency } from '../../lib/utils';
 import { AgeBadge } from '../../components/common/Badge';
+import { useAuth } from '../auth/AuthContext';
 
 export const CheckoutDemoPage: React.FC = () => {
   const navigate = useNavigate();
   const { bookingState, setCustomer, setPaymentMethod, totalAmount, resetBooking } = useBooking();
+  const { user, profile } = useAuth();
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,6 +19,17 @@ export const CheckoutDemoPage: React.FC = () => {
   } | null>(null);
 
   const { movie, showtime, cinema, selectedSeats, customer, paymentMethod } = bookingState;
+
+  // Auto-fill logged in user info if available
+  useEffect(() => {
+    if (user && (!customer.fullName || !customer.email)) {
+      setCustomer({
+        fullName: customer.fullName || profile?.fullName || user.user_metadata?.full_name || '',
+        email: customer.email || user.email || '',
+        phone: customer.phone || profile?.phone || user.user_metadata?.phone || '',
+      });
+    }
+  }, [user, profile]);
 
   // If user enters directly without selecting seats, redirect or show prompt
   if (!movie || !showtime || selectedSeats.length === 0) {

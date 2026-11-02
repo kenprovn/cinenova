@@ -1,27 +1,42 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, RotateCcw, Film } from 'lucide-react';
 import { MOCK_MOVIES } from '../../data/mockData';
 import { MovieCard } from '../../components/movies/MovieCard';
+import { movieService } from '../../services/movieService';
+import { Movie } from '../../types';
 
 export const MoviesPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'now' ? 'now' : 'all';
 
+  const [moviesList, setMoviesList] = useState<Movie[]>(MOCK_MOVIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'now' | 'soon'>(initialTab);
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
   const [selectedAge, setSelectedAge] = useState<string>('all');
 
+  useEffect(() => {
+    let isMounted = true;
+    movieService.getMovies().then((res) => {
+      if (isMounted && res.data.length > 0) {
+        setMoviesList(res.data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Extract unique genres
   const allGenres = useMemo(() => {
     const set = new Set<string>();
-    MOCK_MOVIES.forEach((m) => m.genres.forEach((g) => set.add(g)));
+    moviesList.forEach((m) => m.genres.forEach((g) => set.add(g)));
     return Array.from(set);
-  }, []);
+  }, [moviesList]);
 
   const filteredMovies = useMemo(() => {
-    return MOCK_MOVIES.filter((movie) => {
+    return moviesList.filter((movie) => {
       // Search query
       const matchQuery =
         movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

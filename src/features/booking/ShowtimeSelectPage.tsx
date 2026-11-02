@@ -1,21 +1,44 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Clock, ChevronRight, AlertCircle } from 'lucide-react';
 import { MOCK_MOVIES, MOCK_SHOWTIMES, MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';
 import { useBooking } from './BookingContext';
 import { formatCurrency } from '../../lib/utils';
+import { movieService } from '../../services/movieService';
+import { showtimeService } from '../../services/showtimeService';
+import { cinemaService } from '../../services/cinemaService';
+import { Movie, Showtime, Cinema } from '../../types';
 
 export const ShowtimeSelectPage: React.FC = () => {
   const { movieId } = useParams<{ movieId: string }>();
   const navigate = useNavigate();
   const { setMovie, setShowtimeAndCinema } = useBooking();
 
-  const movie = MOCK_MOVIES.find((m) => m.id === movieId);
-  const dates = useMemo(() => getBookingDates(), []);
+  const [movie, setMovieState] = useState<Movie | null>(() => MOCK_MOVIES.find((m) => m.id === movieId) || null);
+  const [cinemas, setCinemas] = useState<Cinema[]>(MOCK_CINEMAS);
+  const [showtimes, setShowtimes] = useState<Showtime[]>(MOCK_SHOWTIMES);
 
+  const dates = useMemo(() => getBookingDates(), []);
   const [selectedDate, setSelectedDate] = useState<string>(dates[0]?.dateStr || '');
   const [selectedCinemaId, setSelectedCinemaId] = useState<string>(MOCK_CINEMAS[0]?.id || '');
+
+  useEffect(() => {
+    if (movieId) {
+      movieService.getMovieById(movieId).then((m) => {
+        if (m) setMovieState(m);
+      });
+      cinemaService.getCinemas().then((res) => {
+        if (res.data.length > 0) {
+          setCinemas(res.data);
+          setSelectedCinemaId(res.data[0].id);
+        }
+      });
+      showtimeService.getShowtimes(movieId).then((res) => {
+        if (res.data.length > 0) setShowtimes(res.data);
+      });
+    }
+  }, [movieId]);
 
   if (!movie) {
     return (
@@ -34,11 +57,11 @@ export const ShowtimeSelectPage: React.FC = () => {
   }
 
   // Get showtimes matching movie & cinema
-  const availableShowtimes = MOCK_SHOWTIMES.filter(
+  const availableShowtimes = showtimes.filter(
     (st) => st.movieId === movie.id && st.cinemaId === selectedCinemaId
   );
 
-  const selectedCinema = MOCK_CINEMAS.find((c) => c.id === selectedCinemaId) || MOCK_CINEMAS[0];
+  const selectedCinema = cinemas.find((c) => c.id === selectedCinemaId) || cinemas[0] || MOCK_CINEMAS[0];
 
   const handleSelectShowtime = (st: typeof MOCK_SHOWTIMES[0]) => {
     setMovie(movie);
@@ -95,7 +118,7 @@ export const ShowtimeSelectPage: React.FC = () => {
             1. Chọn Cụm Rạp
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {MOCK_CINEMAS.map((cinema) => {
+            {cinemas.map((cinema) => {
               const isSelected = selectedCinemaId === cinema.id;
               return (
                 <button

@@ -1,22 +1,36 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Star, Ticket, Play, MapPin, Film, Sparkles, AlertCircle } from 'lucide-react';
 import { MOCK_MOVIES, MOCK_SHOWTIMES, MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';
 import { useBooking } from '../booking/BookingContext';
 import { formatCurrency } from '../../lib/utils';
+import { movieService } from '../../services/movieService';
+import { showtimeService } from '../../services/showtimeService';
+import { Movie, Showtime } from '../../types';
 
 export const MovieDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setMovie, setShowtimeAndCinema } = useBooking();
 
-  const movie = MOCK_MOVIES.find((m) => m.id === id);
-
+  const [movie, setMovieState] = useState<Movie | null>(() => MOCK_MOVIES.find((m) => m.id === id) || null);
+  const [showtimes, setShowtimes] = useState<Showtime[]>(() => MOCK_SHOWTIMES.filter((st) => st.movieId === id));
   const dates = useMemo(() => getBookingDates(), []);
   const [selectedDate, setSelectedDate] = useState<string>(dates[0]?.dateStr || '');
   const [selectedCinemaId, setSelectedCinemaId] = useState<string>(MOCK_CINEMAS[0]?.id || '');
   const [showTrailerModal, setShowTrailerModal] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      movieService.getMovieById(id).then((m) => {
+        if (m) setMovieState(m);
+      });
+      showtimeService.getShowtimes(id, selectedCinemaId).then((res) => {
+        if (res.data.length > 0) setShowtimes(res.data);
+      });
+    }
+  }, [id, selectedCinemaId]);
 
   if (!movie) {
     return (
@@ -36,7 +50,7 @@ export const MovieDetailsPage: React.FC = () => {
   }
 
   // Filter showtimes for this movie and selected cinema
-  const movieShowtimes = MOCK_SHOWTIMES.filter(
+  const movieShowtimes = showtimes.filter(
     (st) => st.movieId === movie.id && st.cinemaId === selectedCinemaId
   );
 
