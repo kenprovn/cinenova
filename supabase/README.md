@@ -69,3 +69,4 @@ Theo nguyên tắc an toàn, hệ thống **không tự động cấp quyền Ad
    WHERE id = '<DÁN_USER_UID_VÀO_ĐÂY>';
    ```
 5. Đăng xuất và đăng nhập lại trên website, bạn sẽ thấy nút **Admin Portal** và được cấp toàn quyền truy cập `/admin`.
+

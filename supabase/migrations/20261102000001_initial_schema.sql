@@ -201,15 +201,94 @@ BEGIN
     INSERT INTO public.profiles (id, full_name, phone, role)
     VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', SPLIT_PART(NEW.email, '@', 1)),
-        NEW.raw_user_meta_data->>'phone',
-        'customer' -- All users default to customer role (security guardrail)
-    );
+        COALESCE(
+            NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),
+            NULLIF(TRIM(pg_catalog.split_part(NEW.email, '@', 1)), ''),
+            'Thành viên CINENOVA'
+        ),
+        NULLIF(TRIM(NEW.raw_user_meta_data->>'phone'), ''),
+        'customer' -- All signups strictly default to customer (security guardrail)
+    )
+    ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==============================================================================
+-- 14. Automatic updated_at Timestamp Trigger
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = pg_catalog.now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.update_updated_at_column() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
+CREATE TRIGGER trg_profiles_updated_at
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_movies_updated_at ON public.movies;
+CREATE TRIGGER trg_movies_updated_at
+    BEFORE UPDATE ON public.movies
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_showtimes_updated_at ON public.showtimes;
+CREATE TRIGGER trg_showtimes_updated_at
+    BEFORE UPDATE ON public.showtimes
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_bookings_updated_at ON public.bookings;
+CREATE TRIGGER trg_bookings_updated_at
+    BEFORE UPDATE ON public.bookings
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ==============================================================================
+-- 15. Seat Room Integrity Check: Seat must belong to showtime room
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.validate_booking_seat_room()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_showtime_room_id UUID;
+    v_seat_room_id UUID;
+BEGIN
+    -- Lấy room_id từ suất chiếu của đơn đặt vé
+    SELECT s.room_id INTO v_showtime_room_id
+    FROM public.bookings b
+    JOIN public.showtimes s ON s.id = b.showtime_id
+    WHERE b.id = NEW.booking_id;
+
+    -- Lấy room_id của ghế được đặt
+    SELECT st.room_id INTO v_seat_room_id
+    FROM public.seats st
+    WHERE st.id = NEW.seat_id;
+
+    IF v_showtime_room_id IS NULL OR v_seat_room_id IS NULL THEN
+        RAISE EXCEPTION 'Dữ liệu đơn vé hoặc vị trí ghế không hợp lệ.';
+    END IF;
+
+    IF v_showtime_room_id != v_seat_room_id THEN
+        RAISE EXCEPTION 'Ghế được chọn không thuộc phòng chiếu của suất chiếu này.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.validate_booking_seat_room() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS trg_validate_booking_seat_room ON public.booking_seats;
+CREATE TRIGGER trg_validate_booking_seat_room
+    BEFORE INSERT OR UPDATE ON public.booking_seats
+    FOR EACH ROW EXECUTE FUNCTION public.validate_booking_seat_room();

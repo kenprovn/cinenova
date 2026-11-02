@@ -13,3 +13,4 @@ WHERE id = '<USER_UUID>';
 SELECT id, full_name, phone, role, created_at
 FROM public.profiles
 WHERE role = 'admin';
+

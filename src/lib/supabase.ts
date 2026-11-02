@@ -22,3 +22,4 @@ export const supabase: SupabaseClient = createClient(safeUrl, safeKey, {
     detectSessionInUrl: true,
   },
 });
+
