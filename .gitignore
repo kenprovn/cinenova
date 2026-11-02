@@ -19,9 +19,9 @@ lerna-debug.log*
 # Environment and secrets (NEVER commit secrets or .env files)
 .env
 .env.*
-!.env.example
 *.env
 *.env.*
+!.env.example
 !.env.example.*
 
 # Supabase local config & temporary files
