@@ -1,0 +1,24 @@
+-- ==============================================================================
+-- CINENOVA Phase 3 – Concurrency Scenario 1: Connection A (Hold D7)
+-- File: tests/concurrency_A_HOLD.psql
+--
+-- Instructions for psql:
+--   \set customer_a 'UUID_OF_CUSTOMER_A'
+--   \i tests/concurrency_A_HOLD.psql
+-- ==============================================================================
+
+BEGIN;
+SET LOCAL statement_timeout = '60s';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', :'customer_a', true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'customer_a', 'role', 'authenticated')::text, true);
+
+SELECT public.acquire_seat_hold(
+  'f3a00000-0000-4000-8000-000000000004'::uuid,
+  ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid]
+);
+
+\echo '>>> [SESSION A] Acquired hold on D7.'
+\echo '>>> TRANSACTION REMAINS UNCOMMITTED. Switch to Session B now and execute concurrency_B_HOLD.psql.'
+\echo '>>> After Session B enters lock wait, return here and type: COMMIT;'
+

@@ -1,4 +1,4 @@
-export type AgeRating = 'P' | 'K' | 'T13' | 'T16' | 'T18' | 'C';
+﻿export type AgeRating = 'P' | 'K' | 'T13' | 'T16' | 'T18' | 'C';
 
 export type UserRole = 'customer' | 'staff' | 'admin';
 
@@ -51,7 +51,7 @@ export interface Room {
 }
 
 export type SeatType = 'regular' | 'vip' | 'couple';
-export type SeatStatus = 'available' | 'booked' | 'selected' | 'disabled';
+export type SeatStatus = 'available' | 'booked' | 'selected' | 'disabled' | 'held';
 
 export interface Seat {
   id: string;
@@ -61,6 +61,38 @@ export interface Seat {
   type: SeatType;
   status: SeatStatus;
   price: number;
+  expiresAt?: string | null;
+}
+
+export interface TicketInfo {
+  id: string;
+  ticketCode: string;
+  qrToken: string;
+  seatNumber: string;
+  seatType: SeatType;
+  status: 'valid' | 'used' | 'cancelled' | 'refunded';
+  checkedInAt?: string;
+}
+
+export interface CheckInResult {
+  success: boolean;
+  code: string;
+  message: string;
+  ticket?: {
+    ticket_code: string;
+    booking_code: string;
+    customer_name?: string;
+    customer_phone?: string;
+    movie_title: string;
+    movie_poster?: string;
+    cinema_name: string;
+    hall_name: string;
+    seat_number: string;
+    seat_type?: string;
+    format?: string;
+    starts_at?: string;
+    checked_in_at?: string;
+  };
 }
 
 export interface Showtime {
@@ -76,6 +108,8 @@ export interface Showtime {
   format: '2D Digital' | '3D' | 'IMAX Laser';
   priceRegular: number;
   priceVip: number;
+  startsAt?: string;
+  endsAt?: string;
 }
 
 export interface BookingCustomer {
@@ -99,6 +133,7 @@ export interface BookingState {
   selectedSeats: SelectedSeatInfo[];
   customer: BookingCustomer;
   paymentMethod: string;
+  holdExpiresAt?: string | null;
 }
 
 export interface BookingRecord {
@@ -116,17 +151,41 @@ export interface BookingRecord {
   customerEmail: string;
   customerPhone: string;
   paymentMethod: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
+  status: 'confirmed' | 'pending' | 'cancelled' | 'expired';
   createdAt: string;
+  ticketCount?: number;
+  tickets?: {
+    id: string;
+    ticketCode: string;
+    seatNumber: string;
+    status: string;
+  }[];
 }
 
 export interface AdminStats {
+  totalBookings: number;
+  totalConfirmedBookings: number;
+  totalTicketsSold: number;
+  totalDemoRevenue: number;
   todayRevenue: number;
   monthlyRevenue: number;
   todayTickets: number;
   occupancyRate: number;
   growthRate: number;
+  bookingsByStatus: {
+    confirmed: number;
+    pending: number;
+    cancelled: number;
+    expired: number;
+  };
+  paymentMethodStats: {
+    method: string;
+    label: string;
+    count: number;
+    amount: number;
+    percentage: number;
+  }[];
   recentBookings: BookingRecord[];
-  revenueByDay: { day: string; revenue: number; tickets: number }[];
+  revenueByDay: { day: string; date: string; revenue: number; tickets: number }[];
   popularMovies: { title: string; tickets: number; revenue: number; percentage: number }[];
 }

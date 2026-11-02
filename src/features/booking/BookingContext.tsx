@@ -1,11 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Movie, Showtime, Cinema, Seat, SelectedSeatInfo, BookingCustomer, BookingState } from '../../types';
+import { bookingService } from '../../services/bookingService';
 
 interface BookingContextType {
   bookingState: BookingState;
   setMovie: (movie: Movie) => void;
   setShowtimeAndCinema: (showtime: Showtime, cinema: Cinema) => void;
+  selectShowtime: (movie: Movie, showtime: Showtime, cinema: Cinema) => void;
   toggleSeat: (seat: Seat) => boolean; // returns false if max limit reached
+  setSelectedSeats: (seats: SelectedSeatInfo[]) => void;
+  setHoldExpiresAt: (expiresAt: string | null) => void;
   clearSeats: () => void;
   setCustomer: (customer: Partial<BookingCustomer>) => void;
   setPaymentMethod: (method: string) => void;
@@ -24,6 +28,7 @@ const initialBookingState: BookingState = {
     phone: '',
   },
   paymentMethod: 'momo',
+  holdExpiresAt: null,
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -51,21 +56,50 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [bookingState]);
 
   const setMovie = (movie: Movie) => {
-    setBookingState((prev) => ({
-      ...prev,
-      movie,
-      showtime: null,
-      selectedSeats: [],
-    }));
+    setBookingState((prev) => {
+      if (prev.showtime && prev.selectedSeats.length > 0) {
+        bookingService.releaseSeatHold(prev.showtime.id, prev.selectedSeats.map((s) => s.id)).catch(() => {});
+      }
+      return {
+        ...prev,
+        movie,
+        showtime: null,
+        cinema: null,
+        selectedSeats: [],
+        holdExpiresAt: null,
+      };
+    });
   };
 
   const setShowtimeAndCinema = (showtime: Showtime, cinema: Cinema) => {
-    setBookingState((prev) => ({
-      ...prev,
-      showtime,
-      cinema,
-      selectedSeats: [],
-    }));
+    setBookingState((prev) => {
+      if (prev.showtime && prev.showtime.id !== showtime.id && prev.selectedSeats.length > 0) {
+        bookingService.releaseSeatHold(prev.showtime.id, prev.selectedSeats.map((s) => s.id)).catch(() => {});
+      }
+      return {
+        ...prev,
+        showtime,
+        cinema,
+        selectedSeats: [],
+        holdExpiresAt: null,
+      };
+    });
+  };
+
+  const selectShowtime = (movie: Movie, showtime: Showtime, cinema: Cinema) => {
+    setBookingState((prev) => {
+      if (prev.showtime && prev.showtime.id !== showtime.id && prev.selectedSeats.length > 0) {
+        bookingService.releaseSeatHold(prev.showtime.id, prev.selectedSeats.map((s) => s.id)).catch(() => {});
+      }
+      return {
+        ...prev,
+        movie,
+        showtime,
+        cinema,
+        selectedSeats: [],
+        holdExpiresAt: null,
+      };
+    });
   };
 
   const toggleSeat = (seat: Seat): boolean => {
@@ -98,10 +132,25 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return allowed;
   };
 
+  const setSelectedSeats = (selectedSeats: SelectedSeatInfo[]) => {
+    setBookingState((prev) => ({
+      ...prev,
+      selectedSeats,
+    }));
+  };
+
+  const setHoldExpiresAt = (holdExpiresAt: string | null) => {
+    setBookingState((prev) => ({
+      ...prev,
+      holdExpiresAt,
+    }));
+  };
+
   const clearSeats = () => {
     setBookingState((prev) => ({
       ...prev,
       selectedSeats: [],
+      holdExpiresAt: null,
     }));
   };
 
@@ -136,7 +185,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         bookingState,
         setMovie,
         setShowtimeAndCinema,
+        selectShowtime,
         toggleSeat,
+        setSelectedSeats,
+        setHoldExpiresAt,
         clearSeats,
         setCustomer,
         setPaymentMethod,

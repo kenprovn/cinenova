@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { UserProfile } from '../types';
 
 export interface AuthResponse<T = any> {

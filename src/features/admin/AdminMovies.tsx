@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Film, Star, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { MOCK_MOVIES } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';

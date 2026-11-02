@@ -1,12 +1,12 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+﻿import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
-  supabaseUrl.trim() !== '' && 
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl.trim() !== '' &&
   supabaseAnonKey.trim() !== '' &&
   !supabaseUrl.includes('your-project')
 );

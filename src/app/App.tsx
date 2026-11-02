@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { BookingProvider } from '../features/booking/BookingContext';
@@ -35,6 +35,7 @@ export const App: React.FC = () => {
               <Route path="movies/:id" element={<MovieDetailsPage />} />
               <Route path="booking/:movieId" element={<ShowtimeSelectPage />} />
               <Route path="booking/:movieId/seats" element={<SeatSelectionPage />} />
+              <Route path="booking/:movieId/seats/:showtimeId" element={<SeatSelectionPage />} />
               <Route path="checkout" element={<CheckoutDemoPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />

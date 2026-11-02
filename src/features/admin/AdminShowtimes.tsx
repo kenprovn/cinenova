@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, X, AlertCircle, CheckCircle2, Clock, Sparkles, RotateCcw } from 'lucide-react';
 import { MOCK_SHOWTIMES, MOCK_MOVIES, MOCK_CINEMAS } from '../../data/mockData';
 import { formatCurrency } from '../../lib/utils';
@@ -135,10 +135,12 @@ export const AdminShowtimes: React.FC = () => {
       const res = await cinemaService.getRoomsByCinema(cinemaId);
       setRooms(res.data);
       if (res.data.length > 0) {
+        const firstRoom = res.data[0];
         setFormData((prev) => ({
           ...prev,
-          roomId: res.data[0].id,
-          hallName: res.data[0].name,
+          roomId: firstRoom.id,
+          hallName: firstRoom.name,
+          format: firstRoom.roomType === 'imax_laser' ? prev.format : (prev.format === 'IMAX Laser' ? '2D Digital' : prev.format),
         }));
       } else {
         setFormData((prev) => ({
@@ -290,6 +292,17 @@ export const AdminShowtimes: React.FC = () => {
     if (startDateTimeMs < nowMs - 5 * 60 * 1000) {
       setIsSubmitting(false);
       triggerNotice('Không thể tạo suất chiếu trong quá khứ! Vui lòng chọn ngày và giờ chiếu hợp lệ.', 'error');
+      return;
+    }
+
+    // 5.1 Room & Format compatibility validation
+    const chosenRoom = rooms.find((r) => r.id === formData.roomId);
+    if (formData.format === 'IMAX Laser' && chosenRoom?.roomType !== 'imax_laser') {
+      setIsSubmitting(false);
+      triggerNotice(
+        `Phòng "${chosenRoom?.name || 'được chọn'}" (loại: ${chosenRoom?.roomType || 'standard'}) không hỗ trợ định dạng IMAX Laser! Vui lòng chọn định dạng 2D Digital hoặc 3D.`,
+        'error'
+      );
       return;
     }
 
@@ -500,10 +513,12 @@ export const AdminShowtimes: React.FC = () => {
                       value={formData.roomId}
                       onChange={(e) => {
                         const selected = rooms.find((r) => r.id === e.target.value);
+                        const isImax = selected?.roomType === 'imax_laser';
                         setFormData({
                           ...formData,
                           roomId: e.target.value,
                           hallName: selected?.name || formData.hallName,
+                          format: !isImax && formData.format === 'IMAX Laser' ? '2D Digital' : formData.format,
                         });
                       }}
                       className="w-full bg-surface-light border border-surface-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary"
@@ -528,7 +543,11 @@ export const AdminShowtimes: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-cinetext-secondary block font-medium mb-1">Định dạng</label>
+                  <label className="text-cinetext-secondary block font-medium mb-1">
+                    Định dạng {rooms.find((r) => r.id === formData.roomId)?.roomType !== 'imax_laser' && (
+                      <span className="text-[10px] text-cinetext-muted font-normal">(Phòng tiêu chuẩn)</span>
+                    )}
+                  </label>
                   <select
                     value={formData.format}
                     onChange={(e) => setFormData({ ...formData, format: e.target.value as any })}
@@ -536,7 +555,9 @@ export const AdminShowtimes: React.FC = () => {
                   >
                     <option value="2D Digital">2D Digital</option>
                     <option value="3D">3D</option>
-                    <option value="IMAX Laser">IMAX Laser</option>
+                    {rooms.find((r) => r.id === formData.roomId)?.roomType === 'imax_laser' && (
+                      <option value="IMAX Laser">IMAX Laser</option>
+                    )}
                   </select>
                 </div>
               </div>

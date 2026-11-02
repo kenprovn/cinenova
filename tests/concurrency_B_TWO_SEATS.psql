@@ -1,0 +1,26 @@
+-- ==============================================================================
+-- CINENOVA Phase 3 – Concurrency Scenario 2: Connection B (Hold D8 + D7 in reverse)
+-- File: tests/concurrency_B_TWO_SEATS.psql
+--
+-- Instructions for psql:
+--   \set customer_b 'UUID_OF_CUSTOMER_B'
+--   \i tests/concurrency_B_TWO_SEATS.psql
+-- ==============================================================================
+
+BEGIN;
+SET LOCAL statement_timeout = '30s';
+SET LOCAL lock_timeout = '15s';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', :'customer_b', true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'customer_b', 'role', 'authenticated')::text, true);
+
+-- Requesting D8 then D7 (reverse order). The RPC must deterministically sort keys
+-- ascending to guarantee that no deadlocks occur under concurrent requests.
+SELECT public.acquire_seat_hold(
+  'f3a00000-0000-4000-8000-000000000004'::uuid,
+  ARRAY['f3a00000-0000-4000-8000-000000000008'::uuid, 'f3a00000-0000-4000-8000-000000000007'::uuid]
+);
+
+-- After rejection, clean up the aborted transaction by executing:
+--   ROLLBACK;
+

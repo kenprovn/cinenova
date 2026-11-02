@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AgeRating } from '../../types';
 import { cn } from '../../lib/utils';
 

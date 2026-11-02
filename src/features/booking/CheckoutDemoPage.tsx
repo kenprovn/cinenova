@@ -1,10 +1,25 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Ticket, QrCode, CheckCircle2, AlertTriangle, CreditCard, Wallet, Smartphone, Printer, Home } from 'lucide-react';
+import {
+  ArrowLeft,
+  ShieldCheck,
+  Ticket,
+  CheckCircle2,
+  AlertTriangle,
+  CreditCard,
+  Wallet,
+  Smartphone,
+  Printer,
+  Home,
+  Clock,
+  User
+} from 'lucide-react';
 import { useBooking } from './BookingContext';
 import { formatCurrency } from '../../lib/utils';
 import { AgeBadge } from '../../components/common/Badge';
 import { useAuth } from '../auth/AuthContext';
+import { bookingService, PaymentConfirmationResponse } from '../../services/bookingService';
+import { QRCodeCanvas } from '../../components/common/QRCodeCanvas';
 
 export const CheckoutDemoPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,12 +28,62 @@ export const CheckoutDemoPage: React.FC = () => {
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmedBooking, setConfirmedBooking] = useState<{
-    code: string;
-    bookingTime: string;
-  } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { movie, showtime, cinema, selectedSeats, customer, paymentMethod } = bookingState;
+  // Confirmed payment result from PostgreSQL RPC
+  const [confirmedResult, setConfirmedResult] = useState<PaymentConfirmationResponse | null>(null);
+
+  // Remaining hold time
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { movie, showtime, cinema, selectedSeats, customer, paymentMethod, holdExpiresAt } = bookingState;
+
+  // Payload fingerprint strictly ties this checkout token to this exact showtime & seat selection
+  const payloadFingerprint = showtime && selectedSeats.length > 0
+    ? `${showtime.id}:${[...selectedSeats.map((s) => s.id)].sort().join(',')}`
+    : '';
+
+  // Per-checkout attempt token:
+  // - Persisted in sessionStorage keyed by payloadFingerprint so that:
+  //   * Double-clicks keep the same key.
+  //   * Retries keep the same key.
+  //   * Network dropouts keep the same key.
+  //   * F5 Page Refresh keeps the same key (preventing duplicate pending bookings).
+  // - Cleaned up and regenerated when checkout truly ends (payment confirmed) or hold expires/fails.
+  const [checkoutSessionToken, setCheckoutSessionToken] = useState(() => {
+    if (!payloadFingerprint) {
+      return `chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+    const storageKey = `cinenova_chk_token_${payloadFingerprint}`;
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) return saved;
+      const created = `chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem(storageKey, created);
+      return created;
+    } catch {
+      return `chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+  });
+
+  // Synchronize token if payloadFingerprint changes
+  useEffect(() => {
+    if (!payloadFingerprint) return;
+    const storageKey = `cinenova_chk_token_${payloadFingerprint}`;
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        setCheckoutSessionToken(saved);
+      } else {
+        const created = `chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        sessionStorage.setItem(storageKey, created);
+        setCheckoutSessionToken(created);
+      }
+    } catch {
+      // ignore
+    }
+  }, [payloadFingerprint]);
 
   // Auto-fill logged in user info if available
   useEffect(() => {
@@ -30,6 +95,30 @@ export const CheckoutDemoPage: React.FC = () => {
       });
     }
   }, [user, profile]);
+
+  // Countdown timer for hold
+  useEffect(() => {
+    if (!holdExpiresAt) return;
+
+    const targetTime = new Date(holdExpiresAt).getTime();
+
+    const updateTimer = () => {
+      const diff = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+      setRemainingSeconds(diff);
+
+      if (diff <= 0) {
+        if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+        setSubmitError('Thời gian giữ ghế đã hết hạn! Vui lòng quay lại chọn ghế.');
+      }
+    };
+
+    updateTimer();
+    holdTimerRef.current = setInterval(updateTimer, 1000);
+
+    return () => {
+      if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+    };
+  }, [holdExpiresAt]);
 
   // If user enters directly without selecting seats, redirect or show prompt
   if (!movie || !showtime || selectedSeats.length === 0) {
@@ -71,51 +160,119 @@ export const CheckoutDemoPage: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent double submission
     if (!validateForm()) return;
 
+    if (!user) {
+      setSubmitError('Vui lòng đăng nhập để hoàn tất thanh toán và nhận vé.');
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate frontend payment processing delay
-    setTimeout(() => {
+    setSubmitError(null);
+
+    // Compute session-based idempotency key for this checkout attempt
+    const idempotencyKey = `idem_${user.id}_${checkoutSessionToken}`;
+
+    // 1. Create booking transaction in PostgreSQL with idempotency protection
+    const bookingRes = await bookingService.createBooking({
+      showtimeId: showtime.id,
+      seatIds: selectedSeats.map((s) => s.id),
+      customerName: customer.fullName,
+      customerEmail: customer.email,
+      customerPhone: customer.phone,
+      paymentMethod,
+      idempotencyKey,
+    });
+
+    if (!bookingRes.success || !bookingRes.bookingId) {
       setIsSubmitting(false);
-      const randomCode = 'CN-' + Math.floor(100000 + Math.random() * 900000);
-      setConfirmedBooking({
-        code: randomCode,
-        bookingTime: new Date().toLocaleString('vi-VN'),
-      });
-    }, 1200);
+      // If error indicates expired hold or finished session, clean up stored token so subsequent attempt gets fresh token
+      if (bookingRes.error?.toLowerCase().includes('hết hạn') || bookingRes.error?.toLowerCase().includes('đã kết thúc')) {
+        try {
+          sessionStorage.removeItem(`cinenova_chk_token_${payloadFingerprint}`);
+        } catch { /* ignore */ }
+        setCheckoutSessionToken(`chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+      }
+      setSubmitError(bookingRes.error || 'Không thể tạo đơn vé. Ghế có thể đã hết hạn giữ.');
+      return;
+    }
+
+    // 2. Confirm simulated demo payment
+    const paymentRes = await bookingService.confirmDemoPayment(
+      bookingRes.bookingId,
+      paymentMethod
+    );
+
+    setIsSubmitting(false);
+
+    if (!paymentRes.success) {
+      // If payment failed due to expired hold, clean up stored token
+      if (paymentRes.status === 'HOLD_EXPIRED' || paymentRes.error?.toLowerCase().includes('hết hạn')) {
+        try {
+          sessionStorage.removeItem(`cinenova_chk_token_${payloadFingerprint}`);
+        } catch { /* ignore */ }
+        setCheckoutSessionToken(`chk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+      }
+      setSubmitError(paymentRes.error || 'Lỗi khi xác nhận thanh toán demo.');
+      return;
+    }
+
+    // Checkout finished successfully! Clean up token from sessionStorage
+    try {
+      sessionStorage.removeItem(`cinenova_chk_token_${payloadFingerprint}`);
+    } catch { /* ignore */ }
+
+    setConfirmedResult(paymentRes);
   };
 
   const handleFinish = () => {
+    try {
+      sessionStorage.removeItem(`cinenova_chk_token_${payloadFingerprint}`);
+    } catch { /* ignore */ }
     resetBooking();
     navigate('/');
   };
 
-  // SUCCESS CONFIRMATION MODAL / SCREEN (DEMO E-TICKET)
-  if (confirmedBooking) {
+  const formatCountdown = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // SUCCESS CONFIRMATION MODAL / SCREEN (REAL ISSUED QR E-TICKETS)
+  if (confirmedResult) {
+    const tickets = confirmedResult.tickets || [];
+
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 py-12 space-y-8 animate-fade-in">
         <div className="bg-surface rounded-2xl border border-gold/40 p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
           {/* Top Demo Ribbon */}
-          <div className="absolute top-4 right-4 bg-gold/20 text-gold border border-gold/40 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-            Vé Điện Tử Mô Phỏng Demo
+          <div className="flex items-center justify-between border-b border-surface-border pb-4">
+            <span className="bg-gold/20 text-gold border border-gold/40 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+              Thanh toán mô phỏng – Không phát sinh giao dịch ngân hàng
+            </span>
+            <span className="text-xs font-mono text-cinetext-muted">
+              Mã GD: {confirmedResult.transactionId || 'DEMO-TXN'}
+            </span>
           </div>
 
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-glow-gold/20">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h1 className="heading-font text-2xl font-bold text-white">
-              Đặt Vé Thử Nghiệm Thành Công!
+              Đặt Vé & Phát Hành Thành Công!
             </h1>
             <p className="text-xs text-cinetext-secondary">
-              Mã xác nhận giao dịch mô phỏng: <strong className="text-gold font-mono">{confirmedBooking.code}</strong>
+              Mã xác nhận đơn vé: <strong className="text-gold font-mono text-base">{confirmedResult.bookingCode}</strong>
             </p>
           </div>
 
-          {/* Ticket Body */}
-          <div className="bg-surface-light rounded-xl p-5 border border-surface-border space-y-4">
+          {/* Ticket Information Body */}
+          <div className="bg-surface-light rounded-xl p-5 border border-surface-border space-y-5">
             <div className="flex gap-4 items-start border-b border-surface-border pb-4">
               <img
                 src={movie.posterUrl}
@@ -130,43 +287,75 @@ export const CheckoutDemoPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <span className="text-cinetext-muted block">Rạp chiếu:</span>
                 <span className="text-white font-medium">{cinema?.name}</span>
               </div>
               <div>
                 <span className="text-cinetext-muted block">Thời gian:</span>
-                <span className="text-gold font-bold">{showtime.startTime} – Ngày {showtime.date}</span>
+                <span className="text-gold font-bold">{showtime.startTime} – {showtime.date}</span>
               </div>
               <div>
-                <span className="text-cinetext-muted block">Ghế ngồi ({selectedSeats.length} vé):</span>
+                <span className="text-cinetext-muted block">Vị trí ghế:</span>
                 <span className="text-white font-bold">{selectedSeats.map((s) => s.seatNumber).join(', ')}</span>
               </div>
               <div>
-                <span className="text-cinetext-muted block">Tổng tiền mô phỏng:</span>
-                <span className="text-gold font-extrabold">{formatCurrency(totalAmount)}</span>
+                <span className="text-cinetext-muted block">Tổng tiền:</span>
+                <span className="text-gold font-extrabold text-sm">
+                  {formatCurrency(confirmedResult.totalAmount || totalAmount)}
+                </span>
               </div>
               <div>
                 <span className="text-cinetext-muted block">Khách hàng:</span>
-                <span className="text-white font-medium">{customer.fullName} ({customer.phone})</span>
+                <span className="text-white font-medium">{customer.fullName}</span>
               </div>
               <div>
-                <span className="text-cinetext-muted block">Cổng thanh toán:</span>
-                <span className="text-emerald-400 font-medium uppercase">{paymentMethod} (Demo)</span>
+                <span className="text-cinetext-muted block">Cổng TT Demo:</span>
+                <span className="text-emerald-400 font-medium uppercase">{confirmedResult.paymentMethod || paymentMethod}</span>
               </div>
             </div>
 
-            {/* Mock QR Code for cinema gate scanning */}
-            <div className="pt-4 border-t border-surface-border flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-20 h-20 bg-white rounded-lg p-1.5 flex items-center justify-center">
-                  <QrCode className="w-full h-full text-slate-900" />
-                </div>
-                <div className="text-[11px] text-cinetext-secondary">
-                  <p className="text-white font-semibold">Mã vé QR Check-in</p>
-                  <p className="text-cinetext-muted">Đưa mã này cho nhân viên soát vé tại rạp khi triển khai chính thức.</p>
-                </div>
+            {/* Issued QR Tickets List */}
+            <div className="pt-4 border-t border-surface-border space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-cinetext-secondary">
+                Vé Điện Tử & Mã QR Check-In ({tickets.length > 0 ? tickets.length : selectedSeats.length} vé)
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {tickets.length > 0 ? (
+                  tickets.map((t) => (
+                    <div
+                      key={t.id || t.ticketCode}
+                      className="bg-surface p-4 rounded-xl border border-surface-border flex items-center justify-between gap-3 shadow-md"
+                    >
+                      <div className="space-y-1 text-xs">
+                        <span className="bg-primary/20 text-white border border-primary/40 px-2 py-0.5 rounded text-[11px] font-bold">
+                          Ghế {t.seatNumber}
+                        </span>
+                        <p className="text-white font-mono font-bold text-xs mt-1">{t.ticketCode}</p>
+                        <p className="text-[10px] text-cinetext-muted">Mã xác thực cổng</p>
+                      </div>
+                      <QRCodeCanvas value={t.qrToken} size={90} />
+                    </div>
+                  ))
+                ) : (
+                  selectedSeats.map((seat) => (
+                    <div
+                      key={seat.id}
+                      className="bg-surface p-4 rounded-xl border border-surface-border flex items-center justify-between gap-3 shadow-md"
+                    >
+                      <div className="space-y-1 text-xs">
+                        <span className="bg-primary/20 text-white border border-primary/40 px-2 py-0.5 rounded text-[11px] font-bold">
+                          Ghế {seat.seatNumber}
+                        </span>
+                        <p className="text-white font-mono font-bold text-xs mt-1">TKT-DEMO-{seat.seatNumber}</p>
+                        <p className="text-[10px] text-cinetext-muted">Mã xác thực cổng</p>
+                      </div>
+                      <QRCodeCanvas value={`CNQR-DEMO-${confirmedResult.bookingCode}-${seat.seatNumber}`} size={90} />
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -181,11 +370,18 @@ export const CheckoutDemoPage: React.FC = () => {
               <span>Quay về trang chủ</span>
             </button>
             <button
+              onClick={() => navigate('/profile')}
+              className="w-full sm:w-auto px-5 py-3 bg-surface-light hover:bg-surface text-gold hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2"
+            >
+              <User className="w-4 h-4" />
+              <span>Lịch sử vé của tôi</span>
+            </button>
+            <button
               onClick={() => window.print()}
               className="w-full sm:w-auto px-5 py-3 bg-surface-light hover:bg-surface text-cinetext-secondary hover:text-white text-xs font-semibold rounded-xl border border-surface-border transition-colors flex items-center justify-center gap-2"
             >
               <Printer className="w-4 h-4" />
-              <span>In vé mẫu</span>
+              <span>In vé</span>
             </button>
           </div>
         </div>
@@ -207,16 +403,41 @@ export const CheckoutDemoPage: React.FC = () => {
         <span className="text-xs text-cinetext-muted">Bước 3 / 3: Thông Tin & Thanh Toán Demo</span>
       </div>
 
+      {/* Countdown Timer Banner */}
+      {remainingSeconds !== null && remainingSeconds > 0 && (
+        <div className="bg-gradient-to-r from-primary/20 via-surface to-surface border border-primary/50 rounded-xl p-3 sm:p-4 text-xs flex items-center justify-between gap-4 shadow-lg shadow-primary/10">
+          <div className="flex items-center gap-3 text-white">
+            <Clock className="w-5 h-5 text-gold animate-pulse shrink-0" />
+            <div>
+              <p className="font-bold text-white text-sm">Thời gian giữ ghế còn lại</p>
+              <p className="text-cinetext-muted text-xs">
+                Ghế sẽ tự động giải phóng sau khi hết thời gian đếm ngược.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-surface-light border border-surface-border px-3.5 py-1.5 rounded-xl font-mono text-base font-extrabold text-gold shadow-inner shrink-0">
+            <span>{formatCountdown(remainingSeconds)}</span>
+          </div>
+        </div>
+      )}
+
       {/* Demo Warning Alert */}
       <div className="bg-rose-950/40 border border-primary/50 rounded-xl p-4 text-xs text-cinetext-secondary flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-gold shrink-0 mt-0.5" />
         <div>
           <strong className="text-white block font-semibold mb-0.5">
-            Môi trường thử nghiệm Frontend (Phase 1)
+            Môi trường thử nghiệm Demo CINENOVA (Phase 3)
           </strong>
-          Giao diện thanh toán dưới đây là mô phỏng trải nghiệm người dùng (UX). Hệ thống KHÔNG thực hiện giao dịch tài chính thật và KHÔNG trừ tiền tài khoản của bạn.
+          Giao diện thanh toán dưới đây là mô phỏng trải nghiệm người dùng (UX). Hệ thống KHÔNG kết nối tài khoản ngân hàng thật và KHÔNG trừ tiền của bạn. Dữ liệu đơn vé, ghế và mã QR sẽ được ghi nhận vào PostgreSQL.
         </div>
       </div>
+
+      {submitError && (
+        <div className="bg-rose-500/20 border border-rose-500/50 text-rose-300 p-4 rounded-xl text-xs font-semibold flex items-center gap-2 animate-bounce">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      )}
 
       {/* Main Grid: Form + Summary */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -270,7 +491,7 @@ export const CheckoutDemoPage: React.FC = () => {
                     type="tel"
                     value={customer.phone}
                     onChange={(e) => setCustomer({ phone: e.target.value })}
-                    placeholder="0901234567"
+                    placeholder="0912345678"
                     className="w-full bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary placeholder:text-cinetext-muted"
                   />
                   {formErrors.phone && (
@@ -281,53 +502,41 @@ export const CheckoutDemoPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Payment Method Selector */}
+          {/* Payment Method Card (Demo) */}
           <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-4">
             <h2 className="text-base font-bold text-white border-b border-surface-border pb-3">
-              2. Phương Thức Thanh Toán Mô Phỏng
+              2. Phương Thức Thanh Toán Demo
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { id: 'momo', label: 'Ví MoMo (Demo)', desc: 'Thanh toán qua mã QR Ví MoMo', icon: Smartphone },
-                { id: 'vnpay', label: 'VNPAY-QR (Demo)', desc: 'Cổng thanh toán ngân hàng VNPAY', icon: Wallet },
-                { id: 'card', label: 'Thẻ Quốc Tế (Demo)', desc: 'Visa, MasterCard, JCB', icon: CreditCard },
-                { id: 'zalopay', label: 'ZaloPay (Demo)', desc: 'Thanh toán qua ứng dụng ZaloPay', icon: Smartphone },
-              ].map((method) => {
-                const Icon = method.icon;
-                const isSelected = paymentMethod === method.id;
+                { id: 'momo', label: 'Ví MoMo (Demo)', icon: Smartphone },
+                { id: 'vnpay', label: 'VNPAY QR (Demo)', icon: Wallet },
+                { id: 'card', label: 'Thẻ ATM / Visa (Demo)', icon: CreditCard },
+              ].map((m) => {
+                const Icon = m.icon;
+                const isSelected = paymentMethod === m.id;
                 return (
-                  <label
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between gap-3 ${
                       isSelected
-                        ? 'bg-surface-light border-primary shadow-glow-primary/20'
-                        : 'bg-surface-light/40 border-surface-border hover:border-zinc-600'
+                        ? 'bg-primary/20 border-primary text-white shadow-glow-primary/40'
+                        : 'bg-surface-light border-surface-border text-cinetext-secondary hover:text-white hover:border-zinc-500'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={isSelected}
-                      onChange={() => setPaymentMethod(method.id)}
-                      className="mt-1 text-primary focus:ring-0"
-                    />
-                    <div>
-                      <div className="flex items-center gap-1.5 font-bold text-white">
-                        <Icon className="w-4 h-4 text-gold" />
-                        <span>{method.label}</span>
-                      </div>
-                      <p className="text-xs text-cinetext-muted mt-0.5">{method.desc}</p>
-                    </div>
-                  </label>
+                    <Icon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-cinetext-muted'}`} />
+                    <span className="text-xs font-semibold">{m.label}</span>
+                  </button>
                 );
               })}
             </div>
           </div>
         </div>
 
-        {/* Right 1 Col: Order Summary & Confirm Button */}
+        {/* Right 1 Col: Order Summary & Submit */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-5 sticky top-24">
             <h2 className="text-base font-bold text-white border-b border-surface-border pb-3 flex items-center gap-2">
@@ -336,61 +545,53 @@ export const CheckoutDemoPage: React.FC = () => {
             </h2>
 
             <div className="space-y-3 text-xs">
-              <div>
-                <span className="text-cinetext-muted block">Phim:</span>
-                <span className="text-white font-bold text-sm">{movie.title}</span>
-              </div>
-              <div>
-                <span className="text-cinetext-muted block">Rạp:</span>
-                <span className="text-white font-medium">{cinema?.name}</span>
+              <div className="flex justify-between">
+                <span className="text-cinetext-muted">Phim:</span>
+                <span className="text-white font-bold text-right truncate max-w-[170px]">{movie.title}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cinetext-muted">Phòng & Định dạng:</span>
-                <span className="text-white font-medium">{showtime.hallName} ({showtime.format})</span>
+                <span className="text-cinetext-muted">Rạp:</span>
+                <span className="text-white font-medium text-right truncate max-w-[170px]">{cinema?.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-cinetext-muted">Suất chiếu:</span>
-                <span className="text-gold font-bold">{showtime.startTime} • {showtime.date}</span>
+                <span className="text-gold font-bold">{showtime.startTime} – {showtime.date}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cinetext-muted">Ghế ({selectedSeats.length}):</span>
-                <span className="text-white font-bold">{selectedSeats.map((s) => s.seatNumber).join(', ')}</span>
+                <span className="text-cinetext-muted">Phòng & Định dạng:</span>
+                <span className="text-white">{showtime.hallName} ({showtime.format})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cinetext-muted">Ghế ngồi ({selectedSeats.length}):</span>
+                <span className="text-gold font-bold">{selectedSeats.map((s) => s.seatNumber).join(', ')}</span>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-surface-border space-y-2 text-xs">
-              <div className="flex justify-between text-cinetext-secondary">
-                <span>Tiền vé ({selectedSeats.length} ghế):</span>
-                <span>{formatCurrency(totalAmount)}</span>
+            <div className="pt-4 border-t border-surface-border space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-cinetext-secondary">Tổng thanh toán:</span>
+                <span className="text-2xl font-extrabold text-gold">{formatCurrency(totalAmount)}</span>
               </div>
-              <div className="flex justify-between text-cinetext-secondary">
-                <span>Phí dịch vụ:</span>
-                <span className="text-emerald-400">0 ₫ (Miễn phí)</span>
-              </div>
-              <div className="flex justify-between text-base font-extrabold text-gold pt-2 border-t border-surface-border">
-                <span>Tổng cộng:</span>
-                <span>{formatCurrency(totalAmount)}</span>
-              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || remainingSeconds === 0}
+                className={`w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-glow-primary transition-all ${
+                  isSubmitting || remainingSeconds === 0
+                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
+                    : 'bg-primary hover:bg-primary-hover text-white active:scale-95'
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Đang ghi nhận đơn vào PostgreSQL...</span>
+                  </>
+                ) : (
+                  <span>Xác Nhận Thanh Toán DEMO</span>
+                )}
+              </button>
             </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs uppercase tracking-wider shadow-glow-primary transition-all active:scale-95 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Đang xử lý mô phỏng...</span>
-                </span>
-              ) : (
-                <span>Xác nhận đặt vé (Demo)</span>
-              )}
-            </button>
-
-            <p className="text-[11px] text-cinetext-muted text-center leading-tight">
-              Bằng việc bấm xác nhận, bạn xác nhận trải nghiệm mô phỏng quy trình đặt vé CINENOVA Phase 1.
-            </p>
           </div>
         </div>
       </form>

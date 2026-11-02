@@ -1,36 +1,95 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Star, Ticket, Play, MapPin, Film, Sparkles, AlertCircle } from 'lucide-react';
-import { MOCK_MOVIES, MOCK_SHOWTIMES, MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
+import { MOCK_CINEMAS, getBookingDates } from '../../data/mockData';
 import { AgeBadge } from '../../components/common/Badge';
 import { useBooking } from '../booking/BookingContext';
 import { formatCurrency } from '../../lib/utils';
-import { movieService } from '../../services/movieService';
+import { movieService, resolveMovieId, UUID_REGEX } from '../../services/movieService';
 import { showtimeService } from '../../services/showtimeService';
-import { Movie, Showtime } from '../../types';
+import { cinemaService, resolveCinemaId } from '../../services/cinemaService';
+import { Movie, Showtime, Cinema } from '../../types';
 
 export const MovieDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { setMovie, setShowtimeAndCinema } = useBooking();
+  const { selectShowtime } = useBooking();
 
-  const [movie, setMovieState] = useState<Movie | null>(() => MOCK_MOVIES.find((m) => m.id === id) || null);
-  const [showtimes, setShowtimes] = useState<Showtime[]>(() => MOCK_SHOWTIMES.filter((st) => st.movieId === id));
+  const [movie, setMovieState] = useState<Movie | null>(null);
+  const [cinemas, setCinemas] = useState<Cinema[]>(MOCK_CINEMAS);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const dates = useMemo(() => getBookingDates(), []);
   const [selectedDate, setSelectedDate] = useState<string>(dates[0]?.dateStr || '');
   const [selectedCinemaId, setSelectedCinemaId] = useState<string>(MOCK_CINEMAS[0]?.id || '');
   const [showTrailerModal, setShowTrailerModal] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      movieService.getMovieById(id).then((m) => {
-        if (m) setMovieState(m);
-      });
-      showtimeService.getShowtimes(id, selectedCinemaId).then((res) => {
-        if (res.data.length > 0) setShowtimes(res.data);
-      });
+    let isCancelled = false;
+    if (!id) {
+      setIsLoading(false);
+      return;
     }
-  }, [id, selectedCinemaId]);
+
+    const resolvedId = resolveMovieId(id);
+    // Auto-resolve legacy mock IDs (m1, m2...) and update URL
+    if (resolvedId !== id && UUID_REGEX.test(resolvedId)) {
+      navigate(`/movies/${resolvedId}`, { replace: true });
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Fetch movie, cinemas, and showtimes
+    Promise.all([
+      movieService.getMovieById(id),
+      cinemaService.getCinemas(),
+      showtimeService.getShowtimes(id),
+    ]).then(([mRes, cRes, sRes]) => {
+      if (isCancelled) return;
+
+      if (mRes) {
+        setMovieState(mRes);
+        if (mRes.id !== id && UUID_REGEX.test(mRes.id)) {
+          navigate(`/movies/${mRes.id}`, { replace: true });
+        }
+      }
+
+      if (cRes.data.length > 0) {
+        setCinemas(cRes.data);
+        setSelectedCinemaId((prev) => {
+          if (prev && cRes.data.some((c) => c.id === prev)) return prev;
+          return cRes.data[0].id;
+        });
+      }
+
+      if (sRes.data.length > 0) {
+        setShowtimes(sRes.data);
+      } else {
+        setShowtimes([]);
+      }
+
+      setIsLoading(false);
+    }).catch((err) => {
+      if (isCancelled) return;
+      console.error('[MovieDetailsPage] Error loading movie details:', err);
+      setIsLoading(false);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm text-cinetext-secondary">Đang tải thông tin phim...</p>
+      </div>
+    );
+  }
 
   if (!movie) {
     return (
@@ -49,19 +108,21 @@ export const MovieDetailsPage: React.FC = () => {
     );
   }
 
-  // Filter showtimes for this movie and selected cinema
-  const movieShowtimes = showtimes.filter(
-    (st) => st.movieId === movie.id && st.cinemaId === selectedCinemaId
-  );
+  const selectedCinema = cinemas.find((c) => c.id === selectedCinemaId) || cinemas[0] || MOCK_CINEMAS[0];
 
-  const handleSelectShowtime = (st: typeof MOCK_SHOWTIMES[0]) => {
-    const cinema = MOCK_CINEMAS.find((c) => c.id === st.cinemaId) || MOCK_CINEMAS[0];
-    setMovie(movie);
-    setShowtimeAndCinema(st, cinema);
-    navigate(`/booking/${movie.id}/seats`);
+  // Filter showtimes for this movie, selected cinema, and selected date
+  const movieShowtimes = showtimes.filter((st) => {
+    const matchMovie = st.movieId === movie.id;
+    const matchCinema = !selectedCinemaId || st.cinemaId === selectedCinemaId || st.cinemaId === resolveCinemaId(selectedCinemaId);
+    const matchDate = !selectedDate || st.date === selectedDate;
+    return matchMovie && matchCinema && matchDate;
+  });
+
+  const handleSelectShowtime = (st: Showtime) => {
+    const cinema = cinemas.find((c) => c.id === st.cinemaId) || selectedCinema;
+    selectShowtime(movie, st, cinema);
+    navigate(`/booking/${movie.id}/seats?showtimeId=${st.id}`);
   };
-
-  const selectedCinema = MOCK_CINEMAS.find((c) => c.id === selectedCinemaId) || MOCK_CINEMAS[0];
 
   return (
     <div className="space-y-12 pb-24 overflow-x-hidden">
@@ -152,6 +213,14 @@ export const MovieDetailsPage: React.FC = () => {
                   <span>Chọn suất chiếu & Mua vé</span>
                 </a>
 
+                <button
+                  onClick={() => navigate(`/booking/${movie.id}`)}
+                  className="px-5 py-3 rounded-xl bg-surface-light hover:bg-surface text-cinetext-primary text-xs sm:text-sm font-semibold flex items-center gap-2 border border-surface-border transition-colors"
+                >
+                  <Ticket className="w-4 h-4 text-gold" />
+                  <span>Trang đặt vé</span>
+                </button>
+
                 {movie.trailerUrl && (
                   <button
                     onClick={() => setShowTrailerModal(true)}
@@ -181,8 +250,8 @@ export const MovieDetailsPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-4 text-sm">
-            <h2 className="text-base font-bold text-white border-b border-surface-border pb-3">
+          <div className="bg-surface p-6 rounded-2xl border border-surface-border space-y-4">
+            <h2 className="text-lg font-bold text-white border-b border-surface-border pb-3">
               Thông tin chi tiết
             </h2>
             <div className="space-y-3 text-xs sm:text-sm">
@@ -191,12 +260,16 @@ export const MovieDetailsPage: React.FC = () => {
                 <span className="text-white font-medium">{movie.director}</span>
               </div>
               <div>
-                <span className="text-cinetext-muted block text-xs">Diễn viên chính</span>
+                <span className="text-cinetext-muted block text-xs">Diễn viên</span>
                 <span className="text-white font-medium">{movie.cast.join(', ')}</span>
               </div>
               <div>
                 <span className="text-cinetext-muted block text-xs">Thể loại</span>
                 <span className="text-white font-medium">{movie.genres.join(', ')}</span>
+              </div>
+              <div>
+                <span className="text-cinetext-muted block text-xs">Thời lượng</span>
+                <span className="text-white font-medium">{movie.duration} phút</span>
               </div>
               <div>
                 <span className="text-cinetext-muted block text-xs">Phân loại khán giả</span>
@@ -228,7 +301,7 @@ export const MovieDetailsPage: React.FC = () => {
                 onChange={(e) => setSelectedCinemaId(e.target.value)}
                 className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-primary font-medium"
               >
-                {MOCK_CINEMAS.map((c) => (
+                {cinemas.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -314,7 +387,7 @@ export const MovieDetailsPage: React.FC = () => {
               ) : (
                 <div className="text-center py-10 bg-surface-light rounded-xl border border-surface-border space-y-2">
                   <p className="text-sm text-cinetext-secondary">
-                    Hiện chưa có lịch chiếu cho rạp này vào ngày đã chọn.
+                    Hiện chưa có lịch chiếu cho rạp này vào ngày đã chọn ({selectedDate}).
                   </p>
                   <p className="text-xs text-cinetext-muted">
                     Vui lòng chọn rạp khác hoặc ngày chiếu khác.

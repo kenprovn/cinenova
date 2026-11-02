@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Film, 
-  Calendar, 
-  Ticket, 
-  Home, 
-  Clapperboard, 
-  Menu, 
-  X, 
-  Sparkles
+import {
+  LayoutDashboard,
+  Film,
+  Calendar,
+  Ticket,
+  Home,
+  Clapperboard,
+  Menu,
+  X,
+  Sparkles,
+  QrCode
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  activeTab: 'overview' | 'movies' | 'showtimes' | 'bookings';
-  setActiveTab: (tab: 'overview' | 'movies' | 'showtimes' | 'bookings') => void;
+  activeTab: 'overview' | 'movies' | 'showtimes' | 'bookings' | 'checkin';
+  setActiveTab: (tab: 'overview' | 'movies' | 'showtimes' | 'bookings' | 'checkin') => void;
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, setActiveTab }) => {
@@ -27,6 +28,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
     { id: 'movies', label: 'Quản lý phim', icon: Film },
     { id: 'showtimes', label: 'Quản lý suất chiếu', icon: Calendar },
     { id: 'bookings', label: 'Đơn đặt vé', icon: Ticket },
+    { id: 'checkin', label: 'Soát vé QR', icon: QrCode },
   ];
 
   return (
@@ -70,7 +72,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
                   CINENOVA
                 </span>
                 <span className="text-[10px] text-gold font-semibold uppercase tracking-wider -mt-1">
-                  Admin Portal (Demo)
+                  ADMIN PORTAL
                 </span>
               </div>
             </Link>
@@ -114,7 +116,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, s
           <div className="bg-surface-light/60 p-3 rounded-xl border border-surface-border space-y-1">
             <div className="flex items-center gap-1.5 text-gold text-xs font-bold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Quản trị Phase 2 (Supabase)</span>
+              <span>CINENOVA – Cinema Management</span>
             </div>
             <p className="text-[11px] text-cinetext-muted leading-tight">
               Quản lý danh mục phim, suất chiếu và kiểm soát phân quyền qua PostgreSQL RLS.

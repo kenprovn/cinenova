@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Ticket, Star, Sparkles, ChevronRight, Clapperboard, Award, Database } from 'lucide-react';
-import { MOCK_MOVIES } from '../../data/mockData';
+import { MOCK_MOVIES, MOCK_CINEMAS } from '../../data/mockData';
 import { MovieCard } from '../../components/movies/MovieCard';
 import { AgeBadge } from '../../components/common/Badge';
 import { movieService } from '../../services/movieService';
-import { Movie } from '../../types';
+import { cinemaService } from '../../services/cinemaService';
+import { Movie, Cinema } from '../../types';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'now' | 'soon'>('now');
   const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);
+  const [cinemas, setCinemas] = useState<Cinema[]>(MOCK_CINEMAS);
+  const [selectedQuickMovie, setSelectedQuickMovie] = useState<string>('');
+  const [selectedQuickCinema, setSelectedQuickCinema] = useState<string>('');
   const [isFromDb, setIsFromDb] = useState(false);
 
   useEffect(() => {
@@ -19,6 +23,12 @@ export const HomePage: React.FC = () => {
       if (isMounted && res.data.length > 0) {
         setMovies(res.data);
         setIsFromDb(res.isFromDb);
+      }
+    });
+    cinemaService.getCinemas().then((res) => {
+      if (isMounted && res.data.length > 0) {
+        setCinemas(res.data);
+        setSelectedQuickCinema(res.data[0].id);
       }
     });
     return () => {
@@ -30,6 +40,14 @@ export const HomePage: React.FC = () => {
   const heroMovie = movies.find((m) => m.isFeatured) || movies[0] || MOCK_MOVIES[0];
   const nowShowingMovies = movies.filter((m) => m.isNowShowing);
   const comingSoonMovies = movies.filter((m) => m.isComingSoon);
+
+  const handleQuickBook = () => {
+    if (selectedQuickMovie) {
+      navigate(`/booking/${selectedQuickMovie}`);
+    } else {
+      navigate('/movies');
+    }
+  };
 
   return (
     <div className="space-y-16 pb-20 overflow-x-hidden">
@@ -127,20 +145,21 @@ export const HomePage: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">Đặt vé nhanh</h3>
-                <p className="text-xs text-cinetext-secondary">Chọn phim và suất chiếu nhanh trong 1 phút</p>
+                <p className="text-xs text-cinetext-secondary">Chọn phim và rạp nhanh để xem lịch chiếu</p>
               </div>
             </div>
 
             {/* Quick dropdown simulation */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-3/4">
               <select
+                value={selectedQuickMovie}
                 onChange={(e) => {
+                  setSelectedQuickMovie(e.target.value);
                   if (e.target.value) navigate(`/booking/${e.target.value}`);
                 }}
                 className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-primary"
-                defaultValue=""
               >
-                <option value="" disabled>1. Chọn Phim...</option>
+                <option value="">1. Chọn Phim...</option>
                 {nowShowingMovies.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.title}
@@ -149,16 +168,19 @@ export const HomePage: React.FC = () => {
               </select>
 
               <select
+                value={selectedQuickCinema}
+                onChange={(e) => setSelectedQuickCinema(e.target.value)}
                 className="bg-surface-light border border-surface-border text-white text-xs sm:text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-primary"
-                defaultValue="c1"
               >
-                <option value="c1">CINENOVA Landmark Sài Gòn</option>
-                <option value="c2">CINENOVA Tây Hồ Hà Nội</option>
-                <option value="c3">CINENOVA Sông Hàn Đà Nẵng</option>
+                {cinemas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
 
               <button
-                onClick={() => navigate('/movies')}
+                onClick={handleQuickBook}
                 className="bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg py-2.5 px-4 flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>Xem lịch chiếu</span>

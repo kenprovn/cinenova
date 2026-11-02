@@ -1,8 +1,23 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Cinema, Room } from '../types';
 import { MOCK_CINEMAS } from '../data/mockData';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const MOCK_TO_REAL_CINEMA_ID: Record<string, string> = {
+  c1: 'c1000000-0000-0000-0000-000000000001', // CINENOVA Landmark Sài Gòn
+  c2: 'c1000000-0000-0000-0000-000000000002', // CINENOVA Tây Hồ Hà Nội
+  c3: 'c1000000-0000-0000-0000-000000000003', // CINENOVA Sông Hàn Đà Nẵng
+};
+
+export function resolveCinemaId(id: string): string {
+  if (!id) return id;
+  const lower = id.toLowerCase().trim();
+  if (MOCK_TO_REAL_CINEMA_ID[lower]) {
+    return MOCK_TO_REAL_CINEMA_ID[lower];
+  }
+  return id;
+}
 
 const FALLBACK_ROOMS: Room[] = [
   {
@@ -41,13 +56,8 @@ const FALLBACK_ROOMS: Room[] = [
 
 function filterFallbackRooms(cinemaId?: string): Room[] {
   if (!cinemaId) return FALLBACK_ROOMS;
-  return FALLBACK_ROOMS.filter((r) => {
-    if (r.cinemaId === cinemaId) return true;
-    if (cinemaId === 'c1' && r.cinemaId.endsWith('0001')) return true;
-    if (cinemaId === 'c2' && r.cinemaId.endsWith('0002')) return true;
-    if (cinemaId === 'c3' && r.cinemaId.endsWith('0003')) return true;
-    return false;
-  });
+  const targetId = resolveCinemaId(cinemaId);
+  return FALLBACK_ROOMS.filter((r) => r.cinemaId === targetId || r.cinemaId === cinemaId);
 }
 
 export const cinemaService = {
@@ -63,8 +73,13 @@ export const cinemaService = {
         .eq('status', 'active')
         .order('name');
 
-      if (error || !data || data.length === 0) {
-        return { data: MOCK_CINEMAS, isFromDb: false, error: error?.message };
+      if (error) {
+        console.error('[cinemaService] Error fetching cinemas:', error.message);
+        return { data: [], isFromDb: true, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return { data: [], isFromDb: true };
       }
 
       return {
@@ -78,8 +93,41 @@ export const cinemaService = {
         isFromDb: true,
       };
     } catch (err: any) {
-      return { data: MOCK_CINEMAS, isFromDb: false, error: err.message };
+      console.error('[cinemaService] Unexpected error:', err);
+      return { data: [], isFromDb: true, error: err.message };
     }
+  },
+
+  async getCinemaById(id: string): Promise<Cinema | null> {
+    if (!id) return null;
+    const resolvedId = resolveCinemaId(id);
+
+    if (isSupabaseConfigured) {
+      try {
+        if (UUID_REGEX.test(resolvedId)) {
+          const { data, error } = await supabase
+            .from('cinemas')
+            .select('*')
+            .eq('id', resolvedId)
+            .maybeSingle();
+
+          if (!error && data) {
+            return {
+              id: data.id,
+              name: data.name,
+              address: data.address,
+              city: data.city,
+              phone: data.phone || '1900 6868',
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('[cinemaService] Failed to query cinema by ID:', err);
+      }
+      return null;
+    }
+
+    return MOCK_CINEMAS.find((c) => c.id === resolvedId || c.id === id) || null;
   },
 
   async getRoomsByCinema(cinemaId?: string): Promise<{ data: Room[]; isFromDb: boolean; error?: string }> {
@@ -87,11 +135,13 @@ export const cinemaService = {
       return { data: filterFallbackRooms(cinemaId), isFromDb: false };
     }
 
+    const targetCinemaId = cinemaId ? resolveCinemaId(cinemaId) : undefined;
+
     try {
       let query = supabase.from('rooms').select('*').eq('status', 'active').order('name');
 
-      if (cinemaId && UUID_REGEX.test(cinemaId)) {
-        query = query.eq('cinema_id', cinemaId);
+      if (targetCinemaId && UUID_REGEX.test(targetCinemaId)) {
+        query = query.eq('cinema_id', targetCinemaId);
       }
 
       const { data, error } = await query;
@@ -103,7 +153,7 @@ export const cinemaService = {
         return { data: filterFallbackRooms(cinemaId), isFromDb: false };
       }
 
-      let mappedRooms: Room[] = data.map((r) => ({
+      const mappedRooms: Room[] = data.map((r) => ({
         id: r.id,
         cinemaId: r.cinema_id,
         name: r.name,
@@ -112,19 +162,9 @@ export const cinemaService = {
         status: r.status,
       }));
 
-      if (cinemaId && !UUID_REGEX.test(cinemaId)) {
-        mappedRooms = mappedRooms.filter((r) => {
-          if (cinemaId === 'c1' && r.cinemaId.endsWith('0001')) return true;
-          if (cinemaId === 'c2' && r.cinemaId.endsWith('0002')) return true;
-          if (cinemaId === 'c3' && r.cinemaId.endsWith('0003')) return true;
-          return false;
-        });
-      }
-
       return { data: mappedRooms, isFromDb: true };
     } catch (err: any) {
       return { data: filterFallbackRooms(cinemaId), isFromDb: false, error: err.message };
     }
   },
 };
-

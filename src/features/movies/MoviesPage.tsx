@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, RotateCcw, Film } from 'lucide-react';
 import { MOCK_MOVIES } from '../../data/mockData';
@@ -62,7 +62,7 @@ export const MoviesPage: React.FC = () => {
 
       return matchQuery && matchStatus && matchGenre && matchAge;
     });
-  }, [searchQuery, statusFilter, selectedGenre, selectedAge]);
+  }, [moviesList, searchQuery, statusFilter, selectedGenre, selectedAge]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -109,7 +109,7 @@ export const MoviesPage: React.FC = () => {
                   : 'text-cinetext-secondary hover:text-white'
               }`}
             >
-              Tất cả ({MOCK_MOVIES.length})
+              Tất cả ({moviesList.length})
             </button>
             <button
               onClick={() => setStatusFilter('now')}

@@ -1,0 +1,89 @@
+-- ==============================================================================
+-- CINENOVA Phase 3 – Sequential Idempotency Check (Always ROLLBACK)
+-- File: tests/idempotency_ROLLBACK.psql
+--
+-- Instructions for psql:
+--   \set customer_a 'UUID_OF_CUSTOMER_A'
+--   \i tests/idempotency_ROLLBACK.psql
+-- ==============================================================================
+
+BEGIN;
+SET LOCAL statement_timeout = '30s';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', :'customer_a', true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'customer_a', 'role', 'authenticated')::text, true);
+
+-- 1. Hold D7
+SELECT public.acquire_seat_hold(
+  'f3a00000-0000-4000-8000-000000000004'::uuid,
+  ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid]
+);
+
+DO $$
+DECLARE
+  v_key text := 'idemp-rollback-key-' || pg_catalog.replace(pg_catalog.gen_random_uuid()::text, '-', '');
+  v_res1 jsonb;
+  v_res2 jsonb;
+  v_booking1 uuid;
+  v_booking2 uuid;
+  v_mismatch_caught boolean := false;
+BEGIN
+  -- Call 1: First booking creation with idempotency key
+  v_res1 := public.create_booking_transaction(
+    'f3a00000-0000-4000-8000-000000000004'::uuid,
+    ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid],
+    'Idempotency Tester',
+    'idemp@example.invalid',
+    '0901112222',
+    'momo',
+    v_key
+  );
+  v_booking1 := (v_res1->>'booking_id')::uuid;
+  IF v_booking1 IS NULL THEN
+    RAISE EXCEPTION 'Call 1 failed to return booking_id: %', v_res1;
+  END IF;
+
+  -- Call 2: Exact duplicate call with same idempotency key and same payload
+  v_res2 := public.create_booking_transaction(
+    'f3a00000-0000-4000-8000-000000000004'::uuid,
+    ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid],
+    'Idempotency Tester',
+    'idemp@example.invalid',
+    '0901112222',
+    'momo',
+    v_key
+  );
+  v_booking2 := (v_res2->>'booking_id')::uuid;
+
+  IF v_booking1 IS DISTINCT FROM v_booking2 THEN
+    RAISE EXCEPTION 'FAIL: Idempotent replay returned different booking ID (% vs %)', v_booking1, v_booking2;
+  END IF;
+
+  IF (v_res2->>'is_idempotent_replay')::boolean IS NOT TRUE THEN
+    RAISE EXCEPTION 'FAIL: Expected is_idempotent_replay = true, got %', v_res2;
+  END IF;
+
+  -- Call 3: Tampered payload with same idempotency key (different seat D8) -> must raise exception
+  BEGIN
+    PERFORM public.create_booking_transaction(
+      'f3a00000-0000-4000-8000-000000000004'::uuid,
+      ARRAY['f3a00000-0000-4000-8000-000000000008'::uuid],
+      'Idempotency Tester',
+      'idemp@example.invalid',
+      '0901112222',
+      'momo',
+      v_key
+    );
+  EXCEPTION WHEN others THEN
+    v_mismatch_caught := true;
+  END;
+
+  IF NOT v_mismatch_caught THEN
+    RAISE EXCEPTION 'FAIL: Idempotency key reuse with mismatched payload was not rejected!';
+  END IF;
+
+  RAISE NOTICE 'PASS IDEMPOTENCY: Exact replay returns existing booking; mismatched payload is safely rejected.';
+END $$;
+
+ROLLBACK;
+

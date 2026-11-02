@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clapperboard, Phone, Mail, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 
@@ -80,7 +80,7 @@ export const Footer: React.FC = () => {
               Phương thức hỗ trợ
             </h3>
             <p className="text-xs text-cinetext-muted">
-              Mô phỏng hỗ trợ thanh toán qua cổng điện tử trong Phase 2:
+              Hỗ trợ thanh toán mô phỏng (Demo Payments):
             </p>
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="bg-surface-light border border-surface-border px-2.5 py-1 rounded text-zinc-300 font-medium">MoMo</span>
@@ -101,7 +101,7 @@ export const Footer: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>© 2026 CINENOVA. Tất cả các quyền được bảo lưu. Dự án xây dựng hệ thống quản lý rạp chiếu & đặt vé trực tuyến.</p>
           <p className="text-[11px] text-zinc-400 bg-surface px-2 py-0.5 rounded border border-surface-border">
-            Phase 1 Frontend Prototype – Dữ liệu mô phỏng
+            CINENOVA Cinema System – Phiên bản thử nghiệm (Demo)
           </p>
         </div>
       </div>

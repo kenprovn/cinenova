@@ -1,0 +1,55 @@
+-- ==============================================================================
+-- CINENOVA Phase 3 – Concurrency Scenario 3: Connection A (Hold + Book + Pay)
+-- File: tests/concurrency_A_PAYMENT.psql
+--
+-- Instructions for psql:
+--   \set customer_a 'UUID_OF_CUSTOMER_A'
+--   \i tests/concurrency_A_PAYMENT.psql
+-- ==============================================================================
+
+BEGIN;
+SET LOCAL statement_timeout = '60s';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', :'customer_a', true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'customer_a', 'role', 'authenticated')::text, true);
+
+-- 1. Acquire hold on D7
+SELECT public.acquire_seat_hold(
+  'f3a00000-0000-4000-8000-000000000004'::uuid,
+  ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid]
+);
+
+-- 2. Create booking transaction and confirm demo payment
+DO $$
+DECLARE
+  v_res jsonb;
+  v_booking_id uuid;
+  v_idemp text := 'idemp-test-payment-' || replace(gen_random_uuid()::text, '-', '');
+BEGIN
+  v_res := public.create_booking_transaction(
+    'f3a00000-0000-4000-8000-000000000004'::uuid,
+    ARRAY['f3a00000-0000-4000-8000-000000000007'::uuid],
+    'Customer A Test',
+    'customer_a@example.invalid',
+    '0901234567',
+    'momo',
+    v_idemp
+  );
+
+  v_booking_id := (v_res->>'booking_id')::uuid;
+  IF v_booking_id IS NULL THEN
+    RAISE EXCEPTION 'create_booking_transaction failed: %', v_res;
+  END IF;
+
+  v_res := public.confirm_demo_payment(v_booking_id, 'momo');
+  IF (v_res->>'success')::boolean IS NOT TRUE THEN
+    RAISE EXCEPTION 'confirm_demo_payment failed: %', v_res;
+  END IF;
+
+  RAISE NOTICE '>>> [SESSION A] Booking % created and payment confirmed in UNCOMMITTED transaction.', v_booking_id;
+END $$;
+
+\echo '>>> TRANSACTION REMAINS UNCOMMITTED.'
+\echo '>>> Switch to Session B now and execute concurrency_B_HOLD.psql.'
+\echo '>>> Once Session B is waiting, return here and execute: COMMIT;'
+
