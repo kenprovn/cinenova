@@ -59,3 +59,4 @@ export const AgeBadge: React.FC<AgeBadgeProps> = ({ rating, className }) => {
     </span>
   );
 };
+

@@ -16,3 +16,4 @@ export const ClientLayout: React.FC = () => {
     </div>
   );
 };
+

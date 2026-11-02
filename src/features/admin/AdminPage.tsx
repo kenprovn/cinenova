@@ -17,3 +17,4 @@ export const AdminPage: React.FC = () => {
     </AdminLayout>
   );
 };
+

@@ -110,3 +110,4 @@ export interface AdminStats {
   revenueByDay: { day: string; revenue: number; tickets: number }[];
   popularMovies: { title: string; tickets: number; revenue: number; percentage: number }[];
 }
+
