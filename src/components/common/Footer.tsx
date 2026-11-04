@@ -86,13 +86,10 @@ export const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Legal & Demo Disclaimer */}
-      <div className="border-t border-surface-border bg-background/90 py-4 px-4 text-center text-xs text-cinetext-muted">
+      {/* Bottom Legal Copyright */}
+      <div className="border-t border-surface-border bg-background/90 py-5 px-4 text-xs text-cinetext-muted">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 CINENOVA. Tất cả các quyền được bảo lưu. Dự án xây dựng hệ thống quản lý rạp chiếu & đặt vé trực tuyến.</p>
-          <p className="text-[11px] text-zinc-400 bg-surface px-2 py-0.5 rounded border border-surface-border">
-            CINENOVA Cinema System – Phiên bản thử nghiệm (Demo Showcase)
-          </p>
+          <p className="text-center sm:text-left">© 2026 CINENOVA. Tất cả các quyền được bảo lưu. Dự án xây dựng hệ thống quản lý rạp chiếu & đặt vé trực tuyến.</p>
         </div>
       </div>
     </footer>
